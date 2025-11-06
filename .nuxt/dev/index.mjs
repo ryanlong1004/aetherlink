@@ -5,6 +5,10 @@ import { resolve, dirname, join } from 'node:path';
 import nodeCrypto from 'node:crypto';
 import { parentPort, threadId } from 'node:worker_threads';
 import { escapeHtml } from 'file:///home/rlong/Sandbox/aetherlink/node_modules/@vue/shared/dist/shared.cjs.js';
+import arp from 'file:///home/rlong/Sandbox/aetherlink/node_modules/node-arp/lib/arp.js';
+import si from 'file:///home/rlong/Sandbox/aetherlink/node_modules/systeminformation/lib/index.js';
+import { exec } from 'node:child_process';
+import { promisify } from 'node:util';
 import { createRenderer, getRequestDependencies, getPreloadLinks, getPrefetchLinks } from 'file:///home/rlong/Sandbox/aetherlink/node_modules/vue-bundle-renderer/dist/runtime.mjs';
 import { parseURL, withoutBase, joinURL, getQuery, withQuery, withTrailingSlash, decodePath, withLeadingSlash, withoutTrailingSlash, joinRelativeURL } from 'file:///home/rlong/Sandbox/aetherlink/node_modules/ufo/dist/index.mjs';
 import { renderToString } from 'file:///home/rlong/Sandbox/aetherlink/node_modules/vue/server-renderer/index.mjs';
@@ -1448,7 +1452,22 @@ const plugins = [
 _sQt388jwNz1AbZSnIIXQxkEoETMXXi7ouAQAsVjno
 ];
 
-const assets = {};
+const assets = {
+  "/index.mjs": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"169cd-GlKzN2/tOF/tadnNpUYc83jrhiY\"",
+    "mtime": "2025-11-06T23:15:48.397Z",
+    "size": 92621,
+    "path": "index.mjs"
+  },
+  "/index.mjs.map": {
+    "type": "application/json",
+    "etag": "\"5823c-29kbiDFFcEpDhOxAdhBqRLnCBW0\"",
+    "mtime": "2025-11-06T23:15:48.397Z",
+    "size": 361020,
+    "path": "index.mjs.map"
+  }
+};
 
 function readAsset (id) {
   const serverDir = dirname$1(fileURLToPath(globalThis._importMeta_.url));
@@ -2197,7 +2216,223 @@ const styles$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
   default: styles
 }, Symbol.toStringTag, { value: 'Module' }));
 
-const status = defineEventHandler(() => {
+const execAsync = promisify(exec);
+async function getNetworkStats() {
+  return await si.networkStats();
+}
+async function getSystemUptime() {
+  const time = await si.time();
+  return time.uptime;
+}
+function formatUptime(seconds) {
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor(seconds % 86400 / 3600);
+  const minutes = Math.floor(seconds % 3600 / 60);
+  if (days > 0) {
+    return `${days}d ${hours}h`;
+  } else if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  } else {
+    return `${minutes}m`;
+  }
+}
+async function scanNetwork(networkPrefix = "192.168.1") {
+  const devices = [];
+  try {
+    const arpTable = await getArpTable();
+    for (const entry of arpTable) {
+      if (entry.ip && entry.mac) {
+        devices.push({
+          id: entry.mac.replace(/:/g, ""),
+          name: await getDeviceHostname(entry.ip) || `Device-${entry.ip.split(".").pop()}`,
+          ip: entry.ip,
+          mac: entry.mac,
+          status: "online",
+          type: guessDeviceType(entry.mac),
+          vendor: await getMacVendor(entry.mac),
+          lastSeen: /* @__PURE__ */ new Date()
+        });
+      }
+    }
+  } catch (error) {
+    console.error("Network scan error:", error);
+  }
+  return devices;
+}
+async function getArpTable() {
+  try {
+    const { stdout } = await execAsync("arp -a");
+    const entries = [];
+    const lines = stdout.split("\n");
+    for (const line of lines) {
+      const ipMatch = line.match(/\((\d+\.\d+\.\d+\.\d+)\)/);
+      const macMatch = line.match(
+        /([0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2})/
+      );
+      if (ipMatch && macMatch) {
+        entries.push({
+          ip: ipMatch[1],
+          mac: macMatch[1].toLowerCase()
+        });
+      }
+    }
+    return entries;
+  } catch (error) {
+    console.error("Failed to get ARP table:", error);
+    return [];
+  }
+}
+async function getDeviceHostname(ip) {
+  return new Promise((resolve) => {
+    arp.getMAC(ip, (err, mac) => {
+      if (err) {
+        resolve(null);
+      } else {
+        exec(`nslookup ${ip}`, (error, stdout) => {
+          if (error) {
+            resolve(null);
+          } else {
+            const nameMatch = stdout.match(/name = (.+)/);
+            resolve(nameMatch ? nameMatch[1].trim() : null);
+          }
+        });
+      }
+    });
+  });
+}
+function guessDeviceType(mac) {
+  const oui = mac.substring(0, 8).toLowerCase();
+  const patterns = {
+    // Apple devices
+    "00:03:93": "mobile",
+    "00:0a:95": "mobile",
+    "00:1b:63": "mobile",
+    "ac:de:48": "mobile",
+    "f0:18:98": "laptop",
+    // Samsung
+    "00:12:fb": "mobile",
+    "00:1d:25": "tv",
+    // Google/Nest
+    "54:60:09": "iot",
+    "6c:ad:f8": "iot",
+    // Raspberry Pi
+    "b8:27:eb": "iot",
+    "dc:a6:32": "iot"
+  };
+  return patterns[oui] || "default";
+}
+async function getMacVendor(mac) {
+  const oui = mac.substring(0, 8).toLowerCase();
+  const vendors = {
+    "00:03:93": "Apple",
+    "00:0a:95": "Apple",
+    "00:1b:63": "Apple",
+    "ac:de:48": "Apple",
+    "f0:18:98": "Apple",
+    "00:12:fb": "Samsung",
+    "00:1d:25": "Samsung",
+    "54:60:09": "Google",
+    "6c:ad:f8": "Google",
+    "b8:27:eb": "Raspberry Pi Foundation",
+    "dc:a6:32": "Raspberry Pi Trading"
+  };
+  return vendors[oui];
+}
+async function calculateNetworkSpeed() {
+  const stats = await getNetworkStats();
+  const primaryInterface = stats.reduce(
+    (prev, current) => prev.rx_bytes + prev.tx_bytes > current.rx_bytes + current.tx_bytes ? prev : current
+  );
+  const speedMbps = (primaryInterface.rx_sec + primaryInterface.tx_sec) * 8 / 1e6;
+  return Math.round(speedMbps);
+}
+async function calculateDataUsage() {
+  const stats = await getNetworkStats();
+  const totalBytes = stats.reduce(
+    (sum, iface) => sum + iface.rx_bytes + iface.tx_bytes,
+    0
+  );
+  return Math.round(totalBytes / 1073741824 * 10) / 10;
+}
+
+const networkHistory = [];
+const activityLog = [];
+let knownDevices = /* @__PURE__ */ new Set();
+const USE_REAL_DATA = process.env.USE_REAL_NETWORK_DATA === "true";
+const NETWORK_PREFIX = process.env.NETWORK_PREFIX || "192.168.1";
+const status = defineEventHandler(async () => {
+  if (USE_REAL_DATA) {
+    return await getRealNetworkData();
+  } else {
+    return getMockNetworkData();
+  }
+});
+async function getRealNetworkData() {
+  try {
+    const devices = await scanNetwork(NETWORK_PREFIX);
+    for (const device of devices) {
+      if (!knownDevices.has(device.mac)) {
+        knownDevices.add(device.mac);
+        activityLog.unshift({
+          id: Date.now().toString(),
+          device: device.name,
+          action: "Connected to network",
+          timestamp: /* @__PURE__ */ new Date()
+        });
+      }
+    }
+    const uptime = await getSystemUptime();
+    const speed = await calculateNetworkSpeed();
+    const dataUsage = await calculateDataUsage();
+    const stats = await getNetworkStats();
+    const primaryInterface = stats[0];
+    networkHistory.push({
+      timestamp: /* @__PURE__ */ new Date(),
+      download: Math.round(primaryInterface.rx_sec * 8 / 1e6),
+      // Convert to Mbps
+      upload: Math.round(primaryInterface.tx_sec * 8 / 1e6)
+    });
+    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1e3;
+    while (networkHistory.length > 0 && networkHistory[0].timestamp.getTime() < oneDayAgo) {
+      networkHistory.shift();
+    }
+    if (activityLog.length > 50) {
+      activityLog.length = 50;
+    }
+    return {
+      stats: {
+        connectedDevices: devices.length,
+        networkSpeed: speed,
+        dataUsage,
+        uptime: formatUptime(uptime)
+      },
+      devices,
+      activities: activityLog.slice(0, 10),
+      // Return last 10 activities
+      chartData: generateChartDataFromHistory()
+    };
+  } catch (error) {
+    console.error("Error fetching real network data:", error);
+    return getMockNetworkData();
+  }
+}
+function generateChartDataFromHistory() {
+  if (networkHistory.length === 0) {
+    return generateMockChartData();
+  }
+  const data = networkHistory.map((entry, index) => {
+    const hoursAgo = Math.floor(
+      (Date.now() - entry.timestamp.getTime()) / 36e5
+    );
+    return {
+      time: hoursAgo === 0 ? "Now" : `${hoursAgo}h`,
+      download: entry.download,
+      upload: entry.upload
+    };
+  });
+  return data.length > 0 ? data : generateMockChartData();
+}
+function getMockNetworkData() {
   return {
     stats: {
       connectedDevices: Math.floor(Math.random() * 5) + 5,
@@ -2269,10 +2504,10 @@ const status = defineEventHandler(() => {
         timestamp: new Date(Date.now() - 9e5)
       }
     ],
-    chartData: generateChartData()
+    chartData: generateMockChartData()
   };
-});
-function generateChartData() {
+}
+function generateMockChartData() {
   const data = [];
   for (let i = 23; i >= 0; i--) {
     data.push({

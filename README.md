@@ -7,7 +7,8 @@
   
   **Your home network, visualized.**
 
-  ![Status](https://img.shields.io/badge/Status-Active-00e5ff) ![Vue 3](https://img.shields.io/badge/Vue-3.x-00e5ff) ![Nuxt 3](https://img.shields.io/badge/Nuxt-3.x-cd7f32) ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-00e5ff)
+![Status](https://img.shields.io/badge/Status-Active-00e5ff) ![Vue 3](https://img.shields.io/badge/Vue-3.x-00e5ff) ![Nuxt 3](https://img.shields.io/badge/Nuxt-3.x-cd7f32) ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-00e5ff)
+
 </div>
 
 ---
@@ -16,14 +17,15 @@
 
 **AetherLink** is a web-based dashboard for monitoring and visualizing your home wireless network. It brings together **real-time device status**, **historical trends**, **interactive visualizations**, and **network activity tracking** — turning the invisible wireless world into clear visual insight.
 
-The name draws from *"aether,"* the invisible medium through which signals travel, and *"link,"* the connections between devices.
+The name draws from _"aether,"_ the invisible medium through which signals travel, and _"link,"_ the connections between devices.
 
 ### Taglines
-- *"See the unseen. Control the connected."*
-- *"Your home network, visualized."*
-- *"The pulse of your wireless world."*
-- *"From signal to sense."*
-- *"Link the invisible."*
+
+- _"See the unseen. Control the connected."_
+- _"Your home network, visualized."_
+- _"The pulse of your wireless world."_
+- _"From signal to sense."_
+- _"Link the invisible."_
 
 ---
 
@@ -43,13 +45,15 @@ The name draws from *"aether,"* the invisible medium through which signals trave
 
 **Palette**: Deep indigo, cyan glow, brass/bronze accents (steampunk tech feel)
 
-**Typography**: 
-- *Orbitron* - Futuristic sans-serif for UI elements
-- *Merriweather* - Classic serif for headers
+**Typography**:
+
+- _Orbitron_ - Futuristic sans-serif for UI elements
+- _Merriweather_ - Classic serif for headers
 
 **UI Motif**: "Glass and metal" dashboard — translucent panels, animated gauges, glowing network nodes
 
 **Design Elements**:
+
 - Glassmorphism panels with backdrop blur
 - Cyan (#00e5ff) and bronze (#cd7f32) color scheme
 - Pulsing glow effects on active elements
@@ -144,6 +148,67 @@ aetherlink/
 Returns current network status including:
 
 - Network statistics (devices, speed, data usage, uptime)
+- Connected devices list
+- Recent activity log
+- Network traffic chart data
+
+---
+
+## 🔌 Using Real Network Data
+
+By default, AetherLink uses mock data for demonstration. To monitor your actual home network:
+
+### Quick Setup
+
+1. **Copy environment file:**
+
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **Enable real data mode** in `.env`:
+
+   ```env
+   USE_REAL_NETWORK_DATA=true
+   NETWORK_PREFIX=192.168.1  # Your network prefix
+   ```
+
+3. **Run with permissions:**
+
+   ```bash
+   # Linux/Mac - may need sudo for network access
+   sudo npm run dev
+
+   # Or grant node capabilities (Linux):
+   sudo setcap cap_net_raw+eip $(which node)
+   npm run dev
+   ```
+
+4. **Visit** `http://localhost:3000` to see your real network devices!
+
+### What You'll See
+
+- ✅ All connected devices on your network
+- ✅ Real-time network speed and data usage
+- ✅ System uptime
+- ✅ Device types and MAC addresses
+- ✅ Network activity tracking
+
+### Advanced Integration
+
+For detailed metrics, integrate with your router's API:
+
+- **UniFi Controller** - Install `node-unifi`
+- **ASUS Router** - Install `asuswrt`
+- **TP-Link** - Install `tp-link-cloud-api`
+- **SNMP** - Install `net-snmp` for enterprise routers
+
+📖 **[Read the complete integration guide](docs/REAL_DATA_GUIDE.md)** for router-specific setup, troubleshooting, and advanced options.
+
+---
+
+## Customization
+
 - Connected devices list
 - Recent activity log
 - Network traffic chart data
