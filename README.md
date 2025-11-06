@@ -1,27 +1,74 @@
-# Aetherlink 🌐
+# 🌐 AetherLink
 
-A modern web-based dashboard for monitoring your home wireless network with real-time device tracking, network analytics, and activity logs.
+<div align="center">
+  <img src="public/logo.png" alt="AetherLink Logo" width="200"/>
+  
+  ### *See the unseen. Control the connected.*
+  
+  **Your home network, visualized.**
 
-![Aetherlink Dashboard](https://img.shields.io/badge/Status-Active-green) ![Vue 3](https://img.shields.io/badge/Vue-3.x-brightgreen) ![Nuxt 3](https://img.shields.io/badge/Nuxt-3.x-00DC82) ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)
+  ![Status](https://img.shields.io/badge/Status-Active-00e5ff) ![Vue 3](https://img.shields.io/badge/Vue-3.x-00e5ff) ![Nuxt 3](https://img.shields.io/badge/Nuxt-3.x-cd7f32) ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-00e5ff)
+</div>
 
-## Features
+---
 
-- 📊 **Real-time Network Statistics** - Monitor connected devices, network speed, data usage, and uptime
-- 📈 **Traffic Analytics** - Visualize network traffic with interactive charts
-- 🔌 **Device Management** - Track all connected devices with status indicators
+## 🧭 Concept
+
+**AetherLink** is a web-based dashboard for monitoring and visualizing your home wireless network. It brings together **real-time device status**, **historical trends**, **interactive visualizations**, and **network activity tracking** — turning the invisible wireless world into clear visual insight.
+
+The name draws from *"aether,"* the invisible medium through which signals travel, and *"link,"* the connections between devices.
+
+### Taglines
+- *"See the unseen. Control the connected."*
+- *"Your home network, visualized."*
+- *"The pulse of your wireless world."*
+- *"From signal to sense."*
+- *"Link the invisible."*
+
+---
+
+## ✨ Features
+
+- � **Real-time Network Statistics** - Monitor connected devices, network speed, data usage, and uptime
+- 📈 **Traffic Analytics** - Visualize network traffic with interactive Chart.js visualizations
+- 🔌 **Device Management** - Track all connected devices with live status indicators
 - 📝 **Activity Logging** - Keep tabs on network events and device activities
-- 🎨 **Modern UI** - Beautiful gradient design with glassmorphism effects
+- 🎨 **Steampunk-Futuristic UI** - Glass and metal aesthetic with cyan glow and bronze accents
 - ⚡ **Live Updates** - Auto-refreshing data every 30 seconds
+- 🌊 **Animated Components** - Pulse effects, glowing nodes, and smooth transitions
 
-## Tech Stack
+---
 
-- **Framework**: Nuxt 3 with Vue 3
+## 🎨 Visual Identity
+
+**Palette**: Deep indigo, cyan glow, brass/bronze accents (steampunk tech feel)
+
+**Typography**: 
+- *Orbitron* - Futuristic sans-serif for UI elements
+- *Merriweather* - Classic serif for headers
+
+**UI Motif**: "Glass and metal" dashboard — translucent panels, animated gauges, glowing network nodes
+
+**Design Elements**:
+- Glassmorphism panels with backdrop blur
+- Cyan (#00e5ff) and bronze (#cd7f32) color scheme
+- Pulsing glow effects on active elements
+- Custom scrollbars with gradient styling
+
+---
+
+## 🛠️ Tech Stack
+
+- **Framework**: Nuxt 3 with Vue 3 Composition API
 - **Language**: TypeScript
-- **Styling**: Tailwind CSS
+- **Styling**: Tailwind CSS with custom AetherLink theme
 - **Charts**: Chart.js with Vue-chartjs
+- **Fonts**: Google Fonts (Orbitron & Merriweather)
 - **API**: Nuxt server routes
 
-## Getting Started
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
 
@@ -33,7 +80,7 @@ A modern web-based dashboard for monitoring your home wireless network with real
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/aetherlink.git
+git clone https://github.com/ryanlong1004/aetherlink.git
 cd aetherlink
 ```
 
@@ -117,16 +164,20 @@ Modify `assets/css/main.css` and Tailwind configuration in `nuxt.config.ts` to c
 
 ## Roadmap
 
-- [ ] Real-time WebSocket updates
-- [ ] Device bandwidth monitoring
-- [ ] Historical data storage
-- [ ] Router integration
+- [ ] Real-time WebSocket updates for instant network changes
+- [ ] Individual device bandwidth monitoring
+- [ ] Historical data storage with trend analysis
+- [ ] Router API integration (SNMP, UPnP)
 - [ ] Mobile responsive improvements
-- [ ] Dark/light theme toggle
-- [ ] Device blocking/management
-- [ ] Network security alerts
+- [ ] Dark/light theme toggle with preference persistence
+- [ ] Device blocking/management capabilities
+- [ ] Network security alerts and notifications
+- [ ] Customizable dashboard layouts
+- [ ] Export network reports (PDF/CSV)
 
-## Contributing
+---
+
+## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 

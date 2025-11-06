@@ -1,19 +1,19 @@
 <template>
-  <div class="space-y-3 max-h-64 overflow-y-auto">
+  <div class="space-y-3 max-h-64 overflow-y-auto custom-scrollbar">
     <div
       v-for="activity in activities"
       :key="activity.id"
-      class="flex items-start space-x-3 p-3 bg-white/5 rounded-lg"
+      class="flex items-start space-x-3 p-3 glass-panel rounded-lg border border-aether-cyan/10 hover:border-aether-cyan/30 transition-all"
     >
-      <div class="flex-shrink-0 w-2 h-2 mt-2 bg-blue-400 rounded-full"></div>
+      <div class="flex-shrink-0 w-2 h-2 mt-2 bg-aether-cyan rounded-full pulse-animation"></div>
       <div class="flex-1">
-        <p class="text-white">
-          <span class="font-medium">{{ activity.device }}</span> - {{ activity.action }}
+        <p class="text-white font-orbitron">
+          <span class="font-medium text-aether-cyan">{{ activity.device }}</span> - {{ activity.action }}
         </p>
-        <p class="text-gray-400 text-sm">{{ formatTime(activity.timestamp) }}</p>
+        <p class="text-gray-400 text-sm font-mono">{{ formatTime(activity.timestamp) }}</p>
       </div>
     </div>
-    <div v-if="activities.length === 0" class="text-center text-gray-400 py-8">
+    <div v-if="activities.length === 0" class="text-center text-gray-400 py-8 font-orbitron">
       No recent activity
     </div>
   </div>

@@ -1,44 +1,60 @@
 <template>
   <div class="container mx-auto px-4 py-8">
-    <header class="mb-8">
-      <h1 class="text-4xl font-bold text-white mb-2">Aetherlink</h1>
-      <p class="text-gray-300">Home Network Monitor</p>
+    <!-- Hero Header with Logo -->
+    <header class="mb-12 text-center">
+      <div class="flex items-center justify-center mb-4">
+        <img src="/logo.png" alt="AetherLink Logo" class="h-24 w-24 object-contain node-pulse" />
+      </div>
+      <h1 class="text-6xl font-bold font-merriweather text-aether-cyan cyan-glow mb-3">
+        AetherLink
+      </h1>
+      <p class="text-xl text-aether-bronze-light bronze-glow font-orbitron tracking-wider">
+        See the unseen. Control the connected.
+      </p>
+      <p class="text-sm text-gray-400 mt-2 font-light">
+        Your home network, visualized
+      </p>
     </header>
 
+    <!-- Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       <StatsCard
         title="Connected Devices"
         :value="stats.connectedDevices"
         icon="🔗"
-        color="blue"
+        color="cyan"
       />
       <StatsCard
         title="Network Speed"
         :value="`${stats.networkSpeed} Mbps`"
         icon="⚡"
-        color="green"
+        color="cyan"
       />
       <StatsCard
         title="Data Usage"
         :value="`${stats.dataUsage} GB`"
         icon="📊"
-        color="purple"
+        color="bronze"
       />
       <StatsCard
         title="Uptime"
         :value="stats.uptime"
         icon="⏱️"
-        color="orange"
+        color="bronze"
       />
     </div>
 
+    <!-- Main Content Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
       <NetworkChart :data="networkData" />
       <DeviceList :devices="devices" />
     </div>
 
-    <div class="bg-white/10 backdrop-blur-lg rounded-lg p-6">
-      <h2 class="text-2xl font-bold text-white mb-4">Network Activity</h2>
+    <!-- Activity Log -->
+    <div class="glass-panel rounded-lg p-6 border-2 border-aether-cyan/20">
+      <h2 class="text-2xl font-bold font-merriweather text-aether-cyan mb-4">
+        Network Activity
+      </h2>
       <ActivityLog :activities="activities" />
     </div>
   </div>
