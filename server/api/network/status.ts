@@ -21,30 +21,54 @@ const activityLog: Array<{
   timestamp: Date;
 }> = [];
 let knownDevices = new Set<string>();
+let activityIdCounter = 0; // Counter to ensure unique IDs
 
 // Configuration
 const USE_REAL_DATA = process.env.USE_REAL_NETWORK_DATA === "true";
 const NETWORK_PREFIX = process.env.NETWORK_PREFIX || "192.168.1";
 
+console.log("🔍 Network Monitor Config:", {
+  USE_REAL_DATA,
+  NETWORK_PREFIX,
+  env: process.env.USE_REAL_NETWORK_DATA,
+});
+
 export default defineEventHandler(async () => {
+  console.log("📡 API called - Using real data:", USE_REAL_DATA);
+
   if (USE_REAL_DATA) {
-    return await getRealNetworkData();
+    // Add timeout to prevent hanging
+    const timeout = new Promise<ReturnType<typeof getMockNetworkData>>(
+      (resolve) => {
+        setTimeout(() => {
+          console.log("⏱️ Network scan timeout (10s) - falling back to mock data");
+          resolve(getMockNetworkData());
+        }, 10000); // 10 second timeout
+      }
+    );
+
+    const dataPromise = getRealNetworkData();
+
+    return Promise.race([dataPromise, timeout]);
   } else {
     return getMockNetworkData();
   }
 });
 
 async function getRealNetworkData() {
+  console.log("📡 Starting real network data collection...");
   try {
     // Scan network for devices
+    console.log("🔍 Scanning network with prefix:", NETWORK_PREFIX);
     const devices = await scanNetwork(NETWORK_PREFIX);
+    console.log(`✅ Found ${devices.length} devices`);
 
     // Track new devices
     for (const device of devices) {
       if (!knownDevices.has(device.mac)) {
         knownDevices.add(device.mac);
         activityLog.unshift({
-          id: Date.now().toString(),
+          id: `activity-${++activityIdCounter}-${Date.now()}`,
           device: device.name,
           action: "Connected to network",
           timestamp: new Date(),
@@ -53,9 +77,11 @@ async function getRealNetworkData() {
     }
 
     // Get system statistics
+    console.log("📊 Getting system statistics...");
     const uptime = await getSystemUptime();
     const speed = await calculateNetworkSpeed();
     const dataUsage = await calculateDataUsage();
+    console.log("✅ System stats collected:", { uptime, speed, dataUsage });
 
     // Get current network stats for chart
     const stats = await getNetworkStats();
@@ -82,7 +108,7 @@ async function getRealNetworkData() {
       activityLog.length = 50;
     }
 
-    return {
+    const result = {
       stats: {
         connectedDevices: devices.length,
         networkSpeed: speed,
@@ -93,9 +119,14 @@ async function getRealNetworkData() {
       activities: activityLog.slice(0, 10), // Return last 10 activities
       chartData: generateChartDataFromHistory(),
     };
+
+    console.log("✅ Real network data collected successfully");
+    return result;
   } catch (error) {
-    console.error("Error fetching real network data:", error);
+    console.error("❌ Error fetching real network data:", error);
+    console.error("Stack:", error instanceof Error ? error.stack : "No stack");
     // Fallback to mock data on error
+    console.log("⚠️  Falling back to mock data");
     return getMockNetworkData();
   }
 }

@@ -79,35 +79,135 @@ export function formatUptime(seconds: number): string {
 }
 
 /**
- * Scan local network for devices using ARP
+ * Scan local network for devices using ARP table
+ * This provides a more complete view of all devices on the network
  */
 export async function scanNetwork(
   networkPrefix: string = "192.168.1"
 ): Promise<NetworkDevice[]> {
   const devices: NetworkDevice[] = [];
+  const seenMacs = new Set<string>();
 
   try {
-    // Get ARP table
-    const arpTable = await getArpTable();
+    console.log("🔍 Scanning ARP table for network devices...");
 
-    for (const entry of arpTable) {
-      if (entry.ip && entry.mac) {
-        devices.push({
-          id: entry.mac.replace(/:/g, ""),
-          name:
-            (await getDeviceHostname(entry.ip)) ||
-            `Device-${entry.ip.split(".").pop()}`,
-          ip: entry.ip,
-          mac: entry.mac,
-          status: "online",
-          type: guessDeviceType(entry.mac),
-          vendor: await getMacVendor(entry.mac),
-          lastSeen: new Date(),
-        });
+    // Try to get ARP table with timeout
+    try {
+      const { stdout } = await execAsync("arp -a", {
+        timeout: 3000,
+        maxBuffer: 1024 * 1024,
+      });
+
+      // Parse ARP output
+      // Format: hostname (192.168.1.x) at aa:bb:cc:dd:ee:ff [ether] on eth0
+      const lines = stdout.split("\n");
+      console.log(`📋 Found ${lines.length} ARP entries`);
+
+      for (const line of lines) {
+        // Match IP address
+        const ipMatch = line.match(/\((\d+\.\d+\.\d+\.\d+)\)/);
+        // Match MAC address (various formats)
+        const macMatch = line.match(/([0-9a-f]{1,2}[:-]){5}[0-9a-f]{1,2}/i);
+
+        if (ipMatch && macMatch) {
+          const ip = ipMatch[1];
+          const mac = macMatch[0].toLowerCase();
+
+          // Skip if we've already seen this MAC or if it's incomplete
+          if (
+            seenMacs.has(mac) ||
+            mac === "00:00:00:00:00:00" ||
+            line.includes("incomplete")
+          ) {
+            continue;
+          }
+
+          seenMacs.add(mac);
+
+          // Extract hostname if available
+          const hostMatch = line.match(/^(\S+)\s+\(/);
+          const hostname = hostMatch ? hostMatch[1] : null;
+
+          // Guess device type from hostname or MAC OUI
+          let deviceType = "default";
+          let deviceName = hostname || `Device-${ip.split(".").pop()}`;
+
+          if (hostname) {
+            const lower = hostname.toLowerCase();
+            if (lower.includes("iphone") || lower.includes("ipad")) {
+              deviceType = "phone";
+              deviceName = hostname;
+            } else if (
+              lower.includes("amazon") ||
+              lower.includes("echo") ||
+              lower.includes("alexa")
+            ) {
+              deviceType = "speaker";
+              deviceName = hostname;
+            } else if (lower.includes("tv") || lower.includes("roku")) {
+              deviceType = "tv";
+              deviceName = hostname;
+            } else if (
+              lower.includes("laptop") ||
+              lower.includes("macbook") ||
+              lower.includes("thinkpad")
+            ) {
+              deviceType = "laptop";
+              deviceName = hostname;
+            }
+          }
+
+          devices.push({
+            id: mac.replace(/[:-]/g, ""),
+            name: deviceName,
+            ip: ip,
+            mac: mac,
+            status: "online",
+            type: deviceType,
+            lastSeen: new Date(),
+          });
+        }
       }
+
+      console.log(`✅ Found ${devices.length} devices from ARP table`);
+    } catch (arpError) {
+      console.error(
+        "⚠️ ARP scan failed, falling back to interface scan:",
+        arpError
+      );
+
+      // Fallback to network interfaces
+      const interfaces = await getNetworkInterfaces();
+
+      for (const iface of interfaces) {
+        if (
+          iface.ip4 &&
+          iface.ip4 !== "127.0.0.1" &&
+          iface.mac &&
+          iface.mac !== "00:00:00:00:00:00" &&
+          !seenMacs.has(iface.mac)
+        ) {
+          seenMacs.add(iface.mac);
+          devices.push({
+            id: iface.mac.replace(/:/g, ""),
+            name: iface.iface || `Device-${iface.ip4.split(".").pop()}`,
+            ip: iface.ip4,
+            mac: iface.mac,
+            status: "online",
+            type:
+              iface.iface.toLowerCase().includes("wlan") ||
+              iface.iface.toLowerCase().includes("wi")
+                ? "laptop"
+                : "default",
+            lastSeen: new Date(),
+          });
+        }
+      }
+
+      console.log(`✅ Fallback: Created ${devices.length} device entries`);
     }
   } catch (error) {
-    console.error("Network scan error:", error);
+    console.error("❌ Network scan error:", error);
   }
 
   return devices;
