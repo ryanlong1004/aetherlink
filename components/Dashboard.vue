@@ -64,9 +64,9 @@
 import { ref, onMounted } from 'vue'
 
 interface Stats {
-  connectedDevices: number
-  networkSpeed: number
-  dataUsage: number
+  connected_devices: number
+  network_speed: number
+  data_usage: number
   uptime: string
 }
 
@@ -77,16 +77,20 @@ interface Device {
   mac: string
   status: 'online' | 'offline'
   type: string
+  vendor?: string
 }
 
 interface Activity {
   id: string
   device: string
   action: string
-  timestamp: Date
+  timestamp: string
 }
 
-const stats = ref<Stats>({
+const config = useRuntimeConfig()
+const apiBase = config.public.apiBase || 'http://localhost:8000'
+
+const stats = ref({
   connectedDevices: 0,
   networkSpeed: 0,
   dataUsage: 0,
@@ -99,13 +103,22 @@ const networkData = ref<any[]>([])
 
 const fetchNetworkData = async () => {
   try {
-    const response = await $fetch('/api/network/status')
-    stats.value = response.stats
+    const response = await $fetch(`${apiBase}/api/network/status`)
+    
+    // Map API response to component data structure
+    stats.value = {
+      connectedDevices: response.stats.connected_devices,
+      networkSpeed: response.stats.network_speed,
+      dataUsage: response.stats.data_usage,
+      uptime: response.stats.uptime
+    }
+    
     devices.value = response.devices
     activities.value = response.activities
-    networkData.value = response.chartData
+    networkData.value = response.chart_data
   } catch (error) {
-    console.error('Failed to fetch network data:', error)
+    console.error('Failed to fetch network data from API:', error)
+    console.log('Falling back to mock data for development')
     // Use mock data for development
     loadMockData()
   }
@@ -128,9 +141,9 @@ const loadMockData = () => {
   ]
 
   activities.value = [
-    { id: '1', device: 'iPhone 13', action: 'Connected to network', timestamp: new Date(Date.now() - 300000) },
-    { id: '2', device: 'MacBook Pro', action: 'High bandwidth usage detected', timestamp: new Date(Date.now() - 600000) },
-    { id: '3', device: 'Smart TV', action: 'Streaming detected', timestamp: new Date(Date.now() - 900000) },
+    { id: '1', device: 'iPhone 13', action: 'Connected to network', timestamp: new Date(Date.now() - 300000).toISOString() },
+    { id: '2', device: 'MacBook Pro', action: 'High bandwidth usage detected', timestamp: new Date(Date.now() - 600000).toISOString() },
+    { id: '3', device: 'Smart TV', action: 'Streaming detected', timestamp: new Date(Date.now() - 900000).toISOString() },
   ]
 
   networkData.value = generateMockChartData()

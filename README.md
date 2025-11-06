@@ -41,116 +41,144 @@ The name draws from _"aether,"_ the invisible medium through which signals trave
 
 ---
 
-## 🎨 Visual Identity
-
-**Palette**: Deep indigo, cyan glow, brass/bronze accents (steampunk tech feel)
-
-**Typography**:
-
-- _Orbitron_ - Futuristic sans-serif for UI elements
-- _Merriweather_ - Classic serif for headers
-
-**UI Motif**: "Glass and metal" dashboard — translucent panels, animated gauges, glowing network nodes
-
-**Design Elements**:
-
-- Glassmorphism panels with backdrop blur
-- Cyan (#00e5ff) and bronze (#cd7f32) color scheme
-- Pulsing glow effects on active elements
-- Custom scrollbars with gradient styling
-
----
-
 ## 🛠️ Tech Stack
+
+### Frontend
 
 - **Framework**: Nuxt 3 with Vue 3 Composition API
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS with custom AetherLink theme
 - **Charts**: Chart.js with Vue-chartjs
 - **Fonts**: Google Fonts (Orbitron & Merriweather)
-- **API**: Nuxt server routes
+
+### Backend
+
+- **Framework**: FastAPI (Python 3.12)
+- **Network Monitoring**: psutil, subprocess (ARP scanning)
+- **API Documentation**: Swagger UI / ReDoc (auto-generated)
+
+### Deployment
+
+- **Containers**: Docker & Docker Compose
+- **Architecture**: Microservices (separate API and frontend)
 
 ---
 
 ## 🚀 Getting Started
 
-### Prerequisites
-
-- Node.js 18+ or later
-- npm, yarn, pnpm, or bun
-
-### Installation
-
-1. Clone the repository:
+### Quick Start with Docker (Recommended)
 
 ```bash
+# Clone the repository
 git clone https://github.com/ryanlong1004/aetherlink.git
 cd aetherlink
+
+# Start all services
+docker-compose up --build
+
+# Access the application
+# Frontend: http://localhost:3000
+# API Docs: http://localhost:8000/docs
 ```
 
-2. Install dependencies:
+### Development Setup
+
+#### API Service (Python/FastAPI)
 
 ```bash
+cd api-service
+
+# Create and activate virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run development server
+./start.sh
+# Or manually:
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# API will be available at http://localhost:8000
+# Docs at http://localhost:8000/docs
+```
+
+#### Frontend (Nuxt 3)
+
+```bash
+# Install dependencies
 npm install
-```
 
-3. Start the development server:
+# Configure environment
+cp .env.example .env
+# Edit .env and set NUXT_PUBLIC_API_BASE=http://localhost:8000
 
-```bash
-npm run dev
-```
-
-The application will be available at `http://localhost:3000`
-
-## Development
-
-```bash
 # Start development server
 npm run dev
 
-# Build for production
-npm run build
-
-# Preview production build
-npm run preview
-
-# Generate static site
-npm run generate
+# Frontend will be available at http://localhost:3000
 ```
 
 ## Project Structure
 
 ```
 aetherlink/
-├── app.vue                  # Root component
-├── nuxt.config.ts          # Nuxt configuration
-├── assets/
-│   └── css/
-│       └── main.css        # Global styles
-├── components/
-│   ├── Dashboard.vue       # Main dashboard component
-│   ├── StatsCard.vue       # Statistics card component
-│   ├── NetworkChart.vue    # Network traffic chart
-│   ├── DeviceList.vue      # Connected devices list
-│   └── ActivityLog.vue     # Activity log component
+├── api-service/              # Python FastAPI backend
+│   ├── app/
+│   │   ├── main.py          # FastAPI application
+│   │   ├── models/          # Pydantic models
+│   │   │   └── network.py   # Network data models
+│   │   ├── routers/         # API route handlers
+│   │   │   └── network.py   # Network endpoints
+│   │   └── services/        # Business logic
+│   │       └── network_monitor.py  # Network scanning service
+│   ├── Dockerfile           # API container config
+│   ├── requirements.txt     # Python dependencies
+│   ├── start.sh            # Development startup script
+│   └── test_api.sh         # API testing script
+├── components/              # Vue components
+│   ├── Dashboard.vue       # Main dashboard
+│   ├── StatsCard.vue       # Statistics cards
+│   ├── NetworkChart.vue    # Traffic visualization
+│   ├── DeviceList.vue      # Device listing
+│   └── ActivityLog.vue     # Activity feed
 ├── pages/
 │   └── index.vue           # Home page
-└── server/
-    └── api/
-        └── network/
-            └── status.ts   # Network status API endpoint
+├── assets/
+│   └── css/
+│       └── main.css        # Global styles & animations
+├── public/
+│   └── logo.png           # AetherLink logo
+├── Dockerfile             # Frontend container config
+├── docker-compose.yml     # Multi-container orchestration
+├── nuxt.config.ts        # Nuxt configuration
+├── tailwind.config.ts    # Tailwind customization
+└── package.json
 ```
 
 ## API Endpoints
 
-### GET `/api/network/status`
+### Base URL: `http://localhost:8000`
 
-Returns current network status including:
+#### Network Monitoring
 
-- Network statistics (devices, speed, data usage, uptime)
-- Connected devices list
-- Recent activity log
-- Network traffic chart data
+- `GET /api/network/status` - Complete network status (devices, stats, activities, chart data)
+- `GET /api/devices` - List all connected devices
+- `GET /api/devices/{device_id}` - Get specific device details
+- `GET /api/stats` - Network statistics (speed, uptime, data usage)
+- `GET /api/activities?limit=10` - Recent network activities
+
+#### System
+
+- `GET /` - API information
+- `GET /health` - Health check endpoint
+- `GET /docs` - Interactive API documentation (Swagger UI)
+- `GET /redoc` - Alternative API documentation (ReDoc)
+
+### Response Models
+
+All endpoints return JSON with proper typing via Pydantic models. See the interactive documentation at `/docs` for detailed schemas and example requests.
 
 ---
 
