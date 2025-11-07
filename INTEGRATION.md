@@ -51,13 +51,16 @@ NUXT_PUBLIC_API_BASE=http://localhost:8000
 ## Features Displayed
 
 ### Stats Cards
+
 - **Connected Devices**: Live count from API
 - **Network Speed**: Real-time Mbps calculation
 - **Data Usage**: Total GB transferred
 - **Uptime**: System uptime
 
 ### Device List (Enhanced!)
+
 Each device now shows:
+
 - 📱 Device icon based on type
 - Device name (with vendor if identified)
 - IP address
@@ -68,17 +71,20 @@ Each device now shows:
 - **🔄 Total connections** - NEW!
 
 Quality badge colors:
+
 - 🟢 **Excellent**: <10ms, <5% loss (green)
 - 🔵 **Good**: 10-50ms, <5% loss (blue)
 - 🟡 **Fair**: 50-100ms or 5-10% loss (yellow)
 - 🔴 **Poor**: >100ms or >10% loss (red)
 
 ### Network Chart
+
 - Real-time bandwidth visualization
 - Download/Upload speeds over time
 - Historical data from API
 
 ### Activity Log
+
 - Device connections
 - Device disconnections
 - IP address changes
@@ -89,16 +95,20 @@ Quality badge colors:
 The dashboard calls these API endpoints:
 
 ### Primary Endpoint
+
 ```
 GET /api/network/status
 ```
+
 Returns complete network status:
+
 - Statistics (devices, speed, usage, uptime)
 - All connected devices with full metrics
 - Recent activities
 - Chart data for visualization
 
 ### Response Example
+
 ```json
 {
   "stats": {
@@ -138,11 +148,13 @@ Returns complete network status:
 ## Troubleshooting
 
 ### Dashboard shows mock data
+
 - Ensure API is running on port 8000
 - Check `.env` has correct `NUXT_PUBLIC_API_BASE`
 - Check browser console for API errors
 
 ### API not accessible
+
 ```bash
 # Verify API is running
 curl http://localhost:8000/api/diagnostics
@@ -151,6 +163,7 @@ curl http://localhost:8000/api/diagnostics
 ```
 
 ### No connection quality metrics
+
 - Connection quality is measured selectively (every 5th device)
 - Quality data accumulates over time
 - Refresh the page after a few scans
@@ -158,12 +171,14 @@ curl http://localhost:8000/api/diagnostics
 ## Development Tips
 
 ### Watch API logs
+
 ```bash
 # In api-service directory
 tail -f api.log
 ```
 
 ### Test API manually
+
 ```bash
 # Get full status
 curl http://localhost:8000/api/network/status | jq
@@ -176,6 +191,7 @@ curl http://localhost:8000/api/devices | jq
 ```
 
 ### Frontend dev mode
+
 - Hot reload enabled
 - Changes reflect immediately
 - Check browser console for errors
@@ -189,6 +205,7 @@ docker-compose up --build
 ```
 
 Services:
+
 - Frontend: http://localhost:3000
 - API: http://localhost:8000
 - API Docs: http://localhost:8000/docs
@@ -196,14 +213,17 @@ Services:
 ## Production Considerations
 
 1. **Environment Variables**
+
    - Set `NUXT_PUBLIC_API_BASE` to production API URL
    - Use HTTPS in production
 
 2. **CORS**
+
    - API already configured for CORS
    - Update allowed origins for production
 
 3. **Caching**
+
    - 5-second cache appropriate for home networks
    - Adjust `cache_duration` in `network_monitor.py` if needed
 

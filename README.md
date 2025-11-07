@@ -361,6 +361,7 @@ Based on production testing with 19 connected devices:
 ### API Service Issues
 
 **Problem**: API returns empty device list
+
 ```bash
 # Check if ARP table has entries
 arp -a
@@ -373,6 +374,7 @@ docker-compose logs api-service
 ```
 
 **Problem**: Permission denied errors
+
 ```bash
 # Run with host network mode (required for ARP access)
 docker-compose up
@@ -384,6 +386,7 @@ cd api-service && sudo ./start.sh
 ### Frontend Issues
 
 **Problem**: Dashboard shows "Error fetching data"
+
 ```bash
 # Verify API base URL in .env
 cat .env | grep NUXT_PUBLIC_API_BASE
@@ -395,6 +398,7 @@ curl http://localhost:8000/api/network/status
 ```
 
 **Problem**: Build errors
+
 ```bash
 # Clear Nuxt cache
 rm -rf .nuxt
@@ -409,12 +413,14 @@ npm run dev
 ### Network Discovery Issues
 
 **Problem**: Some devices not appearing
+
 - Devices may use randomized MAC addresses (privacy feature)
 - Some devices block ICMP ping (will show offline)
 - Devices must be on same subnet as host machine
 - Check firewall settings aren't blocking ARP requests
 
 **Problem**: Incorrect vendor information
+
 - Add custom MAC OUI entries to `api-service/app/services/mac_vendors.py`
 - Some devices use OUI ranges not in database
 - Consider contributing new vendors via pull request
