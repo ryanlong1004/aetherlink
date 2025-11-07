@@ -92,11 +92,12 @@ check_command git "--version"
 echo ""
 echo "Network Tools (for ARP scanning):"
 check_command arp "--help" "Usually pre-installed on Linux/macOS"
+if [ "$(uname)" = "Linux" ]; then
+    check_command arp-scan "--version" "apt-get install arp-scan (Debian/Ubuntu) or yum install arp-scan (RHEL/CentOS)"
+fi
+
 echo ""
 echo "Optional but Recommended:"
-if [ "$(uname)" = "Linux" ]; then
-    check_command arp-scan "--version" "apt-get install arp-scan (Debian/Ubuntu) or yum install arp-scan (RHEL/CentOS)" "optional" || echo -e "  ${YELLOW}Note: arp-scan enhances device discovery but is not required${NC}"
-fi
 check_command docker "--version" "https://docs.docker.com/get-docker/" "optional" || true
 check_command docker-compose "--version" "https://docs.docker.com/compose/install/" "optional" || true
 
