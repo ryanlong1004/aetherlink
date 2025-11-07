@@ -510,7 +510,9 @@ class NetworkMonitorService:
                         import asyncio
 
                         asyncio.create_task(
-                            websocket_manager.broadcast_alert(alert.dict())
+                            websocket_manager.broadcast_alert(
+                                alert.model_dump(mode="json")
+                            )
                         )
 
                     # Track device info
@@ -579,7 +581,7 @@ class NetworkMonitorService:
                 {
                     "timestamp": datetime.now(),
                     "device_count": len(devices),
-                    "devices": [d.dict() for d in devices],
+                    "devices": [d.model_dump(mode="json") for d in devices],
                 }
             )
 
@@ -649,7 +651,7 @@ class NetworkMonitorService:
             self.stats_history.append(
                 {
                     "timestamp": datetime.now(),
-                    "stats": stats.dict(),
+                    "stats": stats.model_dump(mode="json"),
                 }
             )
 
