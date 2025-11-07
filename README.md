@@ -37,6 +37,7 @@ Monitor your network with real-time device discovery, connection quality metrics
 - 🔄 **Real-time Speed Calculation** - Accurate network speed monitoring with data usage tracking
 - 🎯 **Activity Monitoring** - Tracks device connections, disconnections, and IP address changes
 - 🔍 **Reverse DNS Lookups** - Automatic hostname resolution for connected devices
+- 🚨 **Alert System** - Real-time notifications for network events (new devices, poor connection, high latency)
 - � **System Diagnostics** - Health check endpoint for monitoring service status
 - 📚 **Auto-generated API Docs** - Swagger UI and ReDoc interfaces included
 
@@ -49,6 +50,7 @@ Monitor your network with real-time device discovery, connection quality metrics
 - ⚡ **Performance Metrics Display** - Latency, packet loss, and quality assessment per device
 - � **Vendor Information** - Shows device manufacturer and type (router, laptop, phone, etc.)
 - 📝 **Real-time Activity Log** - Live feed of network events with timestamps
+- 🚨 **Alert Badge & Panel** - Unacknowledged alert counter with expandable alert history
 - 🌊 **Smooth Animations** - Pulse effects, fade transitions, and glowing indicators
 - 📱 **Device Type Icons** - Visual identification with appropriate icons per device category
 

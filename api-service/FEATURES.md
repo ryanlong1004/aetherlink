@@ -5,6 +5,7 @@
 The API now collects **comprehensive network intelligence** that can be fetched regularly without issues:
 
 ### 1. Device Discovery & Identification (✅ COMPLETE)
+
 - **19+ devices** discovered automatically via ARP scanning
 - **200+ vendor mappings** (Apple, Amazon, Google, Samsung, Roku, Sony, TP-Link, Netgear, Ring, Philips Hue, Raspberry Pi, Microsoft, Dell, HP, Lenovo)
 - Intelligent device naming via hostname, DNS, or vendor-based naming
@@ -12,16 +13,18 @@ The API now collects **comprehensive network intelligence** that can be fetched 
 - MAC address tracking with OUI vendor identification
 
 ### 2. Connection Quality Metrics (✅ NEW)
+
 - **Latency measurement** via ICMP ping (ms)
 - **Packet loss percentage** tracking
 - **Connection quality assessment** (excellent/good/fair/poor)
   - Excellent: <10ms latency, <5% loss
-  - Good: 10-50ms latency, <5% loss  
+  - Good: 10-50ms latency, <5% loss
   - Fair: 50-100ms latency or 5-10% loss
   - Poor: >100ms latency or >10% loss
 - Selective ping strategy (every 5th device) to avoid network congestion
 
 ### 3. Real-time Network Statistics (✅ COMPLETE)
+
 - **Live device count** updated every scan
 - **Network speed calculation** (Mbps) from I/O deltas
   - Observed range: 0.02-9.8 Mbps
@@ -30,6 +33,7 @@ The API now collects **comprehensive network intelligence** that can be fetched 
 - **System uptime** formatted (e.g., "48d 0h")
 
 ### 4. Historical Data Tracking (✅ COMPLETE)
+
 - **Network history**: 1440 snapshots (24 hours @ 1/min)
 - **Stats history**: 60 readings (1 hour)
 - **Chart data**: Real-time visualization data from actual measurements
@@ -37,6 +41,7 @@ The API now collects **comprehensive network intelligence** that can be fetched 
 - **Activity log**: Up to 100 events (rolling window)
 
 ### 5. Activity Monitoring (✅ COMPLETE)
+
 - **Device connections**: Automatic detection when devices join
 - **Device disconnections**: Detection when devices leave network
 - **IP address changes**: Tracked per device with before/after values
@@ -45,6 +50,7 @@ The API now collects **comprehensive network intelligence** that can be fetched 
 - **Timestamped events**: All activities with precise timestamps
 
 ### 6. Performance & Caching (✅ COMPLETE)
+
 - **5-second cache** reduces overhead by ~50%
   - First scan: 200-500ms
   - Cached response: 5-10ms
@@ -53,6 +59,7 @@ The API now collects **comprehensive network intelligence** that can be fetched 
 - **Error resilience** with comprehensive exception handling
 
 ### 7. Advanced Device Intelligence (✅ COMPLETE)
+
 - **Reverse DNS lookup** for hostname resolution
 - **Vendor identification** from MAC OUI
 - **Device type inference** from vendor database
@@ -62,6 +69,7 @@ The API now collects **comprehensive network intelligence** that can be fetched 
 ## 📊 Data Richness Demonstration
 
 ### Sample Device Data
+
 ```json
 {
   "id": "54af978460a0",
@@ -81,6 +89,7 @@ The API now collects **comprehensive network intelligence** that can be fetched 
 ```
 
 ### Connection Quality Statistics
+
 - **Excellent**: <10ms, 0% loss (2 devices observed)
 - **Good**: 10-50ms, 0% loss (1 device observed)
 - **Fair**: 50-100ms or minor loss (0 devices)
@@ -89,12 +98,28 @@ The API now collects **comprehensive network intelligence** that can be fetched 
 - **Average packet loss**: 0%
 
 ### Historical Data Accumulation
+
 After running for several minutes:
+
 - Network history: 10+ snapshots
 - Stats history: 10+ readings
 - Activities: 19+ events logged
 - Known devices: 19 tracked
 - Cache hits: Significant performance improvement
+
+### 8. Alert System (✅ NEW)
+
+- **Real-time alert evaluation** during network scans
+- **6 alert types**: New device, device offline, poor connection, duplicate IP, high latency, packet loss
+- **4 severity levels**: Info, Warning, Error, Critical
+- **Configurable thresholds**:
+  - Latency threshold: 200ms (default)
+  - Packet loss threshold: 10% (default)
+  - Offline threshold: 300s (default)
+- **Alert history**: 100 most recent alerts retained
+- **Acknowledgment system**: Mark alerts as read
+- **WebSocket broadcasting**: Real-time alert delivery to connected clients
+- **Activity log integration**: Alerts automatically logged
 
 ## 🔧 API Endpoints Enhanced
 
@@ -106,6 +131,11 @@ All endpoints now return richer data:
 4. **GET /api/stats** - Real-time network statistics
 5. **GET /api/activities** - Event log with detailed actions
 6. **GET /api/diagnostics** - Service health and cache status
+7. **GET /api/alerts** - Active alerts with unacknowledged count
+8. **GET /api/alerts/history** - Alert history (up to 100 entries)
+9. **PATCH /api/alerts/{id}/acknowledge** - Acknowledge specific alert
+10. **GET /api/alerts/rules** - Get configured alert rules
+11. **PUT /api/alerts/rules/{id}** - Update alert rule configuration
 
 ## 🎯 Regular Fetching Without Issues
 
@@ -137,6 +167,7 @@ The system is designed for continuous monitoring:
 ## 🔬 Testing Validation
 
 All features tested and validated:
+
 - ✅ 19 devices discovered consistently
 - ✅ 200+ vendors identified correctly
 - ✅ Latency measurements accurate (13.3ms, 4.88ms observed)
