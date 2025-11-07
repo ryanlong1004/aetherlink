@@ -3,6 +3,22 @@
     <!-- Connection Status Indicator -->
     <ConnectionStatus :status="connectionStatus" />
     
+    <!-- Alert Badge -->
+    <AlertBadge 
+      :unacknowledged-count="unacknowledgedAlerts"
+      :highest-severity="highestAlertSeverity"
+      @toggle="toggleAlertPanel"
+    />
+    
+    <!-- Alert Panel -->
+    <AlertPanel
+      :is-open="showAlertPanel"
+      :alerts="activeAlerts"
+      :alert-history="alertHistory"
+      @close="showAlertPanel = false"
+      @acknowledge="acknowledgeAlert"
+    />
+    
     <!-- Hero Header with Logo -->
     <header class="mb-12 text-center">
       <div class="flex items-center justify-center mb-4">
@@ -112,6 +128,13 @@ const activities = ref<Activity[]>([])
 const networkData = ref<any[]>([])
 const connectionStatus = ref<'connected' | 'disconnected' | 'connecting' | 'reconnecting'>('connecting')
 
+// Alert state
+const activeAlerts = ref<any[]>([])
+const alertHistory = ref<any[]>([])
+const unacknowledgedAlerts = ref(0)
+const showAlertPanel = ref(false)
+const highestAlertSeverity = ref<'info' | 'warning' | 'error' | 'critical'>('info')
+
 let ws: WebSocket | null = null
 let reconnectAttempts = 0
 let reconnectTimeout: ReturnType<typeof setTimeout> | null = null
@@ -129,6 +152,52 @@ const updateNetworkData = (data: any) => {
   devices.value = data.devices
   activities.value = data.activities
   networkData.value = data.chart_data
+  
+  // Update alerts if present
+  if (data.alerts) {
+    activeAlerts.value = data.alerts
+    unacknowledgedAlerts.value = data.unacknowledged_alerts || 0
+    
+    // Calculate highest severity
+    if (data.alerts.length > 0) {
+      const severities = ['critical', 'error', 'warning', 'info']
+      for (const severity of severities) {
+        if (data.alerts.some((a: any) => a.severity === severity)) {
+          highestAlertSeverity.value = severity as any
+          break
+        }
+      }
+    }
+  }
+}
+
+const toggleAlertPanel = () => {
+  showAlertPanel.value = !showAlertPanel.value
+}
+
+const acknowledgeAlert = async (alertId: string) => {
+  try {
+    await $fetch(`${apiBase}/api/alerts/${alertId}/acknowledge`, {
+      method: 'PATCH'
+    })
+    // Remove from active alerts
+    activeAlerts.value = activeAlerts.value.filter((a: any) => a.id !== alertId)
+    unacknowledgedAlerts.value = Math.max(0, unacknowledgedAlerts.value - 1)
+    
+    // Fetch updated alert history
+    fetchAlertHistory()
+  } catch (error) {
+    console.error('Failed to acknowledge alert:', error)
+  }
+}
+
+const fetchAlertHistory = async () => {
+  try {
+    const history = await $fetch(`${apiBase}/api/alerts/history?limit=20`)
+    alertHistory.value = history as any[]
+  } catch (error) {
+    console.error('Failed to fetch alert history:', error)
+  }
 }
 
 const connectWebSocket = () => {
@@ -156,6 +225,19 @@ const connectWebSocket = () => {
         } else if (message.type === 'device_event') {
           console.log(`Device event: ${message.event}`, message.device)
           // Could trigger notifications here
+        } else if (message.type === 'alert') {
+          // New alert received via WebSocket
+          console.log('New alert:', message.alert)
+          activeAlerts.value.push(message.alert)
+          unacknowledgedAlerts.value++
+          
+          // Update highest severity if needed
+          const severities = ['critical', 'error', 'warning', 'info']
+          const newSeverityIndex = severities.indexOf(message.alert.severity)
+          const currentSeverityIndex = severities.indexOf(highestAlertSeverity.value)
+          if (newSeverityIndex < currentSeverityIndex) {
+            highestAlertSeverity.value = message.alert.severity
+          }
         } else if (message.type === 'ping') {
           // Heartbeat received
         }
@@ -259,6 +341,8 @@ const generateMockChartData = () => {
 onMounted(() => {
   // Try WebSocket first, fall back to polling if it fails
   connectWebSocket()
+  // Fetch initial alert history
+  fetchAlertHistory()
 })
 
 onUnmounted(() => {
