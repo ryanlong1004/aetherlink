@@ -10,6 +10,9 @@ from app.models.network import (
     NetworkStats,
     NetworkActivity,
     NetworkStatusResponse,
+    Alert,
+    AlertRule,
+    AlertsResponse,
 )
 from app.services.network_monitor import NetworkMonitorService
 from app.services.websocket_manager import manager
@@ -115,6 +118,90 @@ async def get_diagnostics():
         diagnostics = network_monitor.get_diagnostics()
         diagnostics["websocket_connections"] = manager.get_connection_count()
         return diagnostics
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/alerts", response_model=AlertsResponse)
+async def get_alerts():
+    """
+    Get all active (unacknowledged) network alerts
+
+    Returns:
+    - List of active alerts
+    - Count of unacknowledged alerts
+    """
+    try:
+        alerts = network_monitor.get_alerts()
+        unack_count = network_monitor.alert_manager.get_unacknowledged_count()
+        return AlertsResponse(alerts=alerts, unacknowledged_count=unack_count)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/alerts/history", response_model=List[Alert])
+async def get_alert_history(limit: int = 50):
+    """
+    Get alert history
+
+    - **limit**: Number of alerts to return (default: 50, max: 100)
+    """
+    if limit > 100:
+        limit = 100
+    try:
+        return network_monitor.get_alert_history(limit)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.patch("/alerts/{alert_id}/acknowledge")
+async def acknowledge_alert(alert_id: str):
+    """
+    Acknowledge an alert to remove it from active alerts
+
+    - **alert_id**: The ID of the alert to acknowledge
+    """
+    try:
+        success = network_monitor.acknowledge_alert(alert_id)
+        if not success:
+            raise HTTPException(
+                status_code=404, detail=f"Alert {alert_id} not found"
+            )
+        return {"status": "acknowledged", "alert_id": alert_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/alerts/rules", response_model=List[AlertRule])
+async def get_alert_rules():
+    """
+    Get all configured alert rules
+    """
+    try:
+        return network_monitor.get_alert_rules()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/alerts/rules/{rule_id}", response_model=AlertRule)
+async def update_alert_rule(rule_id: str, rule: AlertRule):
+    """
+    Update an alert rule configuration
+
+    - **rule_id**: The ID of the rule to update
+    - **rule**: The updated rule configuration
+    """
+    try:
+        if rule.id != rule_id:
+            raise HTTPException(
+                status_code=400, detail="Rule ID in path must match rule ID in body"
+            )
+        network_monitor.update_alert_rule(rule)
+        return rule
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

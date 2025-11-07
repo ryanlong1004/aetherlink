@@ -18,6 +18,7 @@ from app.models.network import (
     ChartDataPoint,
 )
 from app.services.mac_vendors import MAC_VENDORS
+from app.services.alert_manager import AlertManager
 
 
 class NetworkMonitorService:
@@ -59,6 +60,9 @@ class NetworkMonitorService:
         # Initial network I/O baseline for speed calculation
         self.last_net_io = psutil.net_io_counters()
         self.last_net_io_time = time.time()
+
+        # Alert management
+        self.alert_manager = AlertManager()
 
     def _detect_network_interface(self) -> Optional[str]:
         """
@@ -471,6 +475,22 @@ class NetworkMonitorService:
                     )
                     devices.append(device)
 
+                    # Evaluate device for alerts
+                    alerts = self.alert_manager.evaluate_device(device)
+                    for alert in alerts:
+                        # Add to activity log for visibility
+                        self.activity_counter += 1
+                        activity = NetworkActivity(
+                            id=(
+                                f"activity-{self.activity_counter}-"
+                                f"{int(datetime.now().timestamp())}"
+                            ),
+                            device=device_name,
+                            action=f"Alert: {alert.title}",
+                            timestamp=datetime.now(),
+                        )
+                        self.activity_log.insert(0, activity)
+
                     # Track device info
                     if mac not in self.known_devices:
                         # New device connected
@@ -672,4 +692,25 @@ class NetworkMonitorService:
             "network_history_count": len(self.network_history),
             "stats_history_count": len(self.stats_history),
             "known_devices": list(self.known_devices.keys()),
+            "active_alerts": self.alert_manager.get_unacknowledged_count(),
         }
+
+    def get_alerts(self):
+        """Get all active alerts"""
+        return self.alert_manager.get_active_alerts()
+
+    def get_alert_history(self, limit: int = 50):
+        """Get alert history"""
+        return self.alert_manager.get_alert_history(limit)
+
+    def acknowledge_alert(self, alert_id: str) -> bool:
+        """Acknowledge an alert"""
+        return self.alert_manager.acknowledge_alert(alert_id)
+
+    def get_alert_rules(self):
+        """Get all alert rules"""
+        return self.alert_manager.get_rules()
+
+    def update_alert_rule(self, rule):
+        """Update an alert rule"""
+        self.alert_manager.update_rule(rule)
