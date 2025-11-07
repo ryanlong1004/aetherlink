@@ -8,8 +8,6 @@ services:
     volumes:
       - ./api-service:/app:cached
       - api-venv:/app/.venv
-    ports:
-      - "8000:8000"
     environment:
       - API_HOST=0.0.0.0
       - API_PORT=8000
