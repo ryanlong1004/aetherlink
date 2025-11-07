@@ -164,9 +164,7 @@ async def acknowledge_alert(alert_id: str):
     try:
         success = network_monitor.acknowledge_alert(alert_id)
         if not success:
-            raise HTTPException(
-                status_code=404, detail=f"Alert {alert_id} not found"
-            )
+            raise HTTPException(status_code=404, detail=f"Alert {alert_id} not found")
         return {"status": "acknowledged", "alert_id": alert_id}
     except HTTPException:
         raise
@@ -227,6 +225,10 @@ async def websocket_endpoint(websocket: WebSocket):
                 activities = await network_monitor.get_activities(limit=10)
                 chart_data = network_monitor.generate_chart_data()
 
+                # Get active alerts
+                active_alerts = network_monitor.get_alerts()
+                unack_count = network_monitor.alert_manager.get_unacknowledged_count()
+
                 # Prepare status data
                 status_data = {
                     "stats": {
@@ -240,6 +242,10 @@ async def websocket_endpoint(websocket: WebSocket):
                     "chart_data": [
                         point.model_dump(mode="json") for point in chart_data
                     ],
+                    "alerts": [
+                        alert.model_dump(mode="json") for alert in active_alerts
+                    ],
+                    "unacknowledged_alerts": unack_count,
                 }
 
                 # Check for device changes

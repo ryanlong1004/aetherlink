@@ -19,6 +19,7 @@ from app.models.network import (
 )
 from app.services.mac_vendors import MAC_VENDORS
 from app.services.alert_manager import AlertManager
+from app.services.websocket_manager import manager as websocket_manager
 
 
 class NetworkMonitorService:
@@ -490,6 +491,13 @@ class NetworkMonitorService:
                             timestamp=datetime.now(),
                         )
                         self.activity_log.insert(0, activity)
+
+                        # Broadcast alert via WebSocket for real-time updates
+                        import asyncio
+
+                        asyncio.create_task(
+                            websocket_manager.broadcast_alert(alert.dict())
+                        )
 
                     # Track device info
                     if mac not in self.known_devices:

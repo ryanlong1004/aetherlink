@@ -86,6 +86,17 @@ class ConnectionManager:
         }
         await self.broadcast(message)
 
+    async def broadcast_alert(self, alert: dict):
+        """
+        Broadcast new alert to all connected clients for real-time notifications
+        """
+        message = {
+            "type": "alert",
+            "timestamp": datetime.now().isoformat(),
+            "alert": alert,
+        }
+        await self.broadcast(message)
+
     async def send_heartbeat(self, websocket: WebSocket):
         """
         Send heartbeat/ping to check connection health
