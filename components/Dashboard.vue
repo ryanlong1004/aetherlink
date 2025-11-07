@@ -1,5 +1,8 @@
 <template>
   <div class="container mx-auto px-4 py-8">
+    <!-- Connection Status Indicator -->
+    <ConnectionStatus :status="connectionStatus" />
+    
     <!-- Hero Header with Logo -->
     <header class="mb-12 text-center">
       <div class="flex items-center justify-center mb-4">
@@ -61,7 +64,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 
 interface Stats {
   connected_devices: number
@@ -95,6 +98,7 @@ interface Activity {
 
 const config = useRuntimeConfig()
 const apiBase = config.public.apiBase || 'http://localhost:8000'
+const wsBase = apiBase.replace('http://', 'ws://').replace('https://', 'wss://')
 
 const stats = ref({
   connectedDevices: 0,
@@ -106,28 +110,113 @@ const stats = ref({
 const devices = ref<Device[]>([])
 const activities = ref<Activity[]>([])
 const networkData = ref<any[]>([])
+const connectionStatus = ref<'connected' | 'disconnected' | 'connecting' | 'reconnecting'>('connecting')
+
+let ws: WebSocket | null = null
+let reconnectAttempts = 0
+let reconnectTimeout: ReturnType<typeof setTimeout> | null = null
+const maxReconnectDelay = 30000 // 30 seconds max
+const baseReconnectDelay = 1000 // 1 second base
+
+const updateNetworkData = (data: any) => {
+  stats.value = {
+    connectedDevices: data.stats.connected_devices,
+    networkSpeed: data.stats.network_speed,
+    dataUsage: data.stats.data_usage,
+    uptime: data.stats.uptime
+  }
+  
+  devices.value = data.devices
+  activities.value = data.activities
+  networkData.value = data.chart_data
+}
+
+const connectWebSocket = () => {
+  if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+    return
+  }
+
+  connectionStatus.value = reconnectAttempts > 0 ? 'reconnecting' : 'connecting'
+  
+  try {
+    ws = new WebSocket(`${wsBase}/api/ws/network`)
+
+    ws.onopen = () => {
+      console.log('✓ WebSocket connected')
+      connectionStatus.value = 'connected'
+      reconnectAttempts = 0
+    }
+
+    ws.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data)
+        
+        if (message.type === 'network_update') {
+          updateNetworkData(message.data)
+        } else if (message.type === 'device_event') {
+          console.log(`Device event: ${message.event}`, message.device)
+          // Could trigger notifications here
+        } else if (message.type === 'ping') {
+          // Heartbeat received
+        }
+      } catch (error) {
+        console.error('Error parsing WebSocket message:', error)
+      }
+    }
+
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error)
+      connectionStatus.value = 'disconnected'
+    }
+
+    ws.onclose = () => {
+      console.log('✗ WebSocket disconnected')
+      connectionStatus.value = 'disconnected'
+      ws = null
+      
+      // Attempt to reconnect with exponential backoff
+      const delay = Math.min(baseReconnectDelay * Math.pow(2, reconnectAttempts), maxReconnectDelay)
+      console.log(`Reconnecting in ${delay}ms (attempt ${reconnectAttempts + 1})`)
+      
+      reconnectTimeout = setTimeout(() => {
+        reconnectAttempts++
+        connectWebSocket()
+      }, delay)
+    }
+  } catch (error) {
+    console.error('Failed to create WebSocket:', error)
+    connectionStatus.value = 'disconnected'
+    fallbackToPolling()
+  }
+}
+
+const disconnectWebSocket = () => {
+  if (reconnectTimeout) {
+    clearTimeout(reconnectTimeout)
+    reconnectTimeout = null
+  }
+  
+  if (ws) {
+    ws.close()
+    ws = null
+  }
+}
 
 const fetchNetworkData = async () => {
   try {
     const response = await $fetch(`${apiBase}/api/network/status`)
-    
-    // Map API response to component data structure
-    stats.value = {
-      connectedDevices: response.stats.connected_devices,
-      networkSpeed: response.stats.network_speed,
-      dataUsage: response.stats.data_usage,
-      uptime: response.stats.uptime
-    }
-    
-    devices.value = response.devices
-    activities.value = response.activities
-    networkData.value = response.chart_data
+    updateNetworkData(response)
   } catch (error) {
     console.error('Failed to fetch network data from API:', error)
     console.log('Falling back to mock data for development')
-    // Use mock data for development
     loadMockData()
   }
+}
+
+const fallbackToPolling = () => {
+  console.log('Falling back to HTTP polling')
+  fetchNetworkData()
+  setInterval(fetchNetworkData, 30000)
 }
 
 const loadMockData = () => {
@@ -168,8 +257,11 @@ const generateMockChartData = () => {
 }
 
 onMounted(() => {
-  fetchNetworkData()
-  // Refresh data every 30 seconds
-  setInterval(fetchNetworkData, 30000)
+  // Try WebSocket first, fall back to polling if it fails
+  connectWebSocket()
+})
+
+onUnmounted(() => {
+  disconnectWebSocket()
 })
 </script>
