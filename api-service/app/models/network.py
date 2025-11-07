@@ -4,7 +4,7 @@ from typing import Optional, Literal
 
 
 class NetworkDevice(BaseModel):
-    """Network device model"""
+    """Network device model with connection quality metrics"""
 
     id: str
     name: str
@@ -14,6 +14,12 @@ class NetworkDevice(BaseModel):
     type: str
     vendor: Optional[str] = None
     last_seen: Optional[datetime] = None
+    # Connection quality metrics
+    latency: Optional[float] = None  # ms
+    packet_loss: Optional[float] = None  # percentage
+    connection_quality: Optional[Literal["excellent", "good", "fair", "poor"]] = None
+    first_seen: Optional[datetime] = None
+    total_connections: Optional[int] = None
 
     class Config:
         json_schema_extra = {
@@ -26,6 +32,11 @@ class NetworkDevice(BaseModel):
                 "type": "phone",
                 "vendor": "Apple",
                 "last_seen": "2025-11-06T18:30:00",
+                "latency": 12.5,
+                "packet_loss": 0.0,
+                "connection_quality": "excellent",
+                "first_seen": "2025-11-05T08:00:00",
+                "total_connections": 15,
             }
         }
 

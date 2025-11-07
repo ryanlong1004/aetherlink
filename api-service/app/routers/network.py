@@ -96,3 +96,20 @@ async def get_activities(limit: int = 10):
         return activities
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/diagnostics")
+async def get_diagnostics():
+    """
+    Get service diagnostics for monitoring and troubleshooting
+
+    Returns:
+    - Cache status and age
+    - Device counts (cached vs known)
+    - Activity and history counts
+    - List of known device MAC addresses
+    """
+    try:
+        return network_monitor.get_diagnostics()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
