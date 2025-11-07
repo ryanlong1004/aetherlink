@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  workspace:
+    build:
+      context: .devcontainer
+      dockerfile: Dockerfile
+    volumes:
+      - ..:/workspace:cached
+    command: sleep infinity
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    user: vscode
