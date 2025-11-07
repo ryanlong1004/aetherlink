@@ -90,14 +90,27 @@ Monitor your network with real-time device discovery, connection quality metrics
 
 ## 🚀 Getting Started
 
-### Quick Start with Docker (Recommended)
+### ⚡ Quick Start
+
+Choose your preferred development setup method:
+
+1. **VS Code Dev Container** (Recommended) - One-click setup with all tools pre-configured
+2. **Docker Compose** - Quick containerized development with hot reload
+3. **Local Development** - Traditional setup with full control
+
+**📘 See [DEVELOPMENT.md](DEVELOPMENT.md) for detailed setup instructions**
+
+### Quick Start with Docker Compose
 
 ```bash
 # Clone the repository
 git clone https://github.com/ryanlong1004/aetherlink.git
 cd aetherlink
 
-# Start all services
+# Option 1: Development mode (hot reload)
+docker-compose -f docker-compose.dev.yml up --build
+
+# Option 2: Production mode
 docker-compose up --build
 
 # Access the application
@@ -105,7 +118,20 @@ docker-compose up --build
 # API Docs: http://localhost:8000/docs
 ```
 
-### Development Setup
+### Quick Start - Local Development
+
+```bash
+# Clone the repository
+git clone https://github.com/ryanlong1004/aetherlink.git
+cd aetherlink
+
+# Run automated setup
+./scripts/setup-dev.sh
+
+# Or see DEVELOPMENT.md for manual setup
+```
+
+### Development Setup (Manual)
 
 #### API Service (Python/FastAPI)
 

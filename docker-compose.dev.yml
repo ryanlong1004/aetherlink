@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: ./api-service
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./api-service:/app:cached
+      - api-venv:/app/.venv
+    ports:
+      - "8000:8000"
+    environment:
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - NETWORK_PREFIX=192.168.1
+      - CORS_ORIGINS=http://localhost:3000
+    command: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/app:cached
+      - /app/node_modules
+      - /app/.nuxt
+    ports:
+      - "3000:3000"
+      - "24678:24678"  # Nuxt DevTools
+    environment:
+      - NUXT_PUBLIC_API_BASE=http://localhost:8000
+      - NODE_ENV=development
+    command: npm run dev
+    depends_on:
+      - api
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  api-venv:
