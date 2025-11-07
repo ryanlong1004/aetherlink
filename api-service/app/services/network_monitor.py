@@ -31,6 +31,7 @@ class NetworkMonitorService:
 
     def __init__(self, network_prefix: str = "192.168.1"):
         self.network_prefix = network_prefix
+        self.network_interface = self._detect_network_interface()
 
         # Device tracking
         self.known_devices: Dict[str, Dict[str, Any]] = {}
@@ -58,6 +59,44 @@ class NetworkMonitorService:
         # Initial network I/O baseline for speed calculation
         self.last_net_io = psutil.net_io_counters()
         self.last_net_io_time = time.time()
+
+    def _detect_network_interface(self) -> Optional[str]:
+        """
+        Auto-detect the active network interface for arp-scan
+        Returns the first active non-loopback interface
+        """
+        try:
+            # Get all network interfaces
+            interfaces = psutil.net_if_addrs()
+            stats = psutil.net_if_stats()
+
+            # Priority order for interface names
+            priority = ["eth0", "wlan0", "en0", "ens33", "enp0s3"]
+
+            # First try priority interfaces if they exist and are up
+            for iface_name in priority:
+                if iface_name in interfaces and iface_name in stats:
+                    if stats[iface_name].isup:
+                        # Skip loopback
+                        if iface_name.lower() != "lo":
+                            print(f"🌐 Detected network interface: {iface_name}")
+                            return iface_name
+
+            # Fall back to first active non-loopback interface
+            for iface_name, iface_stats in stats.items():
+                if iface_stats.isup:
+                    # Skip loopback, docker, and virtual interfaces
+                    skip_names = ["docker", "veth", "br-", "lo"]
+                    if not any(x in iface_name.lower() for x in skip_names):
+                        print(f"🌐 Detected network interface: {iface_name}")
+                        return iface_name
+
+            print("⚠️ No active network interface found")
+            return None
+
+        except Exception as e:
+            print(f"❌ Error detecting network interface: {e}")
+            return None
 
     def get_mac_vendor(self, mac: str) -> Optional[Dict[str, str]]:
         """Get vendor information from MAC address OUI"""
@@ -170,9 +209,155 @@ class NetworkMonitorService:
         elapsed = time.time() - self.last_scan_time
         return elapsed < self.cache_duration
 
+    def _scan_with_arp_scan(self) -> Optional[List[Dict[str, Any]]]:
+        """
+        Use arp-scan for fast, active network scanning
+        Returns list of dicts with {ip, mac, vendor, response_time}
+        Returns None if arp-scan fails
+        """
+        if not self.network_interface:
+            print("⚠️ No network interface detected for arp-scan")
+            return None
+
+        try:
+            # Run arp-scan with retry and timeout
+            # Note: Requires cap_net_raw capability or sudo
+            cmd = [
+                "arp-scan",
+                "--interface",
+                self.network_interface,
+                "--localnet",
+                "--retry",
+                "2",
+                "--timeout",
+                "500",
+                "--quiet",
+            ]
+
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
+
+            if result.returncode != 0:
+                print(f"⚠️ arp-scan failed: {result.stderr}")
+                return None
+
+            devices = []
+            duplicate_ips = []
+
+            # Parse arp-scan output
+            # Format: IP\tMAC\tVendor\tResponse_time
+            # Example: 192.168.1.1\t00:11:22:33:44:55\tApple\t0.123ms
+            lines = result.stdout.strip().split("\n")
+
+            for line in lines:
+                # Skip empty lines and headers
+                if not line or line.startswith("#"):
+                    continue
+
+                # Check for duplicate IP warnings
+                if "DUP" in line or "duplicate" in line.lower():
+                    # Extract IP from duplicate warning
+                    ip_match = re.search(r"(\d+\.\d+\.\d+\.\d+)", line)
+                    if ip_match:
+                        duplicate_ips.append(ip_match.group(1))
+                    continue
+
+                # Parse device line
+                parts = line.split("\t")
+                if len(parts) < 2:
+                    continue
+
+                ip = parts[0].strip()
+                mac = parts[1].strip().lower()
+                vendor = parts[2].strip() if len(parts) > 2 else None
+
+                # Parse response time (e.g., "0.123ms")
+                response_time = None
+                if len(parts) > 3:
+                    time_str = parts[3].strip()
+                    time_match = re.search(r"([\d.]+)", time_str)
+                    if time_match:
+                        response_time = float(time_match.group(1))
+
+                devices.append(
+                    {
+                        "ip": ip,
+                        "mac": mac,
+                        "vendor": vendor,
+                        "response_time": response_time,
+                    }
+                )
+
+            # Log duplicate IPs
+            for dup_ip in duplicate_ips:
+                self.activity_counter += 1
+                activity = NetworkActivity(
+                    id=f"activity-{self.activity_counter}-"
+                    f"{int(datetime.now().timestamp())}",
+                    device=f"Multiple devices at {dup_ip}",
+                    action="⚠️ Duplicate IP address detected",
+                    timestamp=datetime.now(),
+                )
+                self.activity_log.insert(0, activity)
+                print(f"⚠️ Duplicate IP detected: {dup_ip}")
+
+            print(f"✅ arp-scan found {len(devices)} devices")
+            return devices
+
+        except subprocess.TimeoutExpired:
+            print("⚠️ arp-scan timed out")
+            return None
+        except FileNotFoundError:
+            print("⚠️ arp-scan not found in PATH")
+            return None
+        except Exception as e:
+            print(f"⚠️ arp-scan error: {e}")
+            return None
+
+    def _scan_with_arp_table(self) -> List[Dict[str, Any]]:
+        """
+        Fallback: Use traditional arp -a scanning
+        Returns list of dicts with {ip, mac, hostname}
+        """
+        devices = []
+
+        try:
+            result = subprocess.run(
+                ["arp", "-a"], capture_output=True, text=True, timeout=3
+            )
+
+            if result.returncode != 0:
+                return devices
+
+            for line in result.stdout.split("\n"):
+                ip_match = re.search(r"\((\d+\.\d+\.\d+\.\d+)\)", line)
+                mac_match = re.search(
+                    r"([0-9a-f]{1,2}[:-]){5}[0-9a-f]{1,2}", line, re.IGNORECASE
+                )
+
+                if ip_match and mac_match:
+                    ip = ip_match.group(1)
+                    mac = mac_match.group(0).lower()
+
+                    if mac == "00:00:00:00:00:00":
+                        continue
+                    if "incomplete" in line.lower():
+                        continue
+
+                    hostname_match = re.match(r"^(\S+)\s+\(", line)
+                    hostname = hostname_match.group(1) if hostname_match else None
+
+                    devices.append({"ip": ip, "mac": mac, "hostname": hostname})
+
+            print(f"✅ arp -a found {len(devices)} devices")
+            return devices
+
+        except Exception as e:
+            print(f"❌ Error with arp -a: {e}")
+            return devices
+
     async def scan_network(self) -> List[NetworkDevice]:
         """
-        Scan network for connected devices using ARP table
+        Scan network for connected devices using arp-scan (with fallback)
         Returns cached result if scan was recent
         """
         # Return cached data if valid
@@ -184,67 +369,77 @@ class NetworkMonitorService:
         seen_macs = set()
         current_macs = set()
 
+        # Try arp-scan first (faster, more reliable)
+        scan_results = self._scan_with_arp_scan()
+
+        # Fall back to arp -a if arp-scan fails
+        if scan_results is None:
+            print("📋 Falling back to arp -a scanning")
+            scan_results = self._scan_with_arp_table()
+
         try:
-            # Run arp -a command
-            result = subprocess.run(
-                ["arp", "-a"], capture_output=True, text=True, timeout=3
-            )
+            # Process scan results
+            for result in scan_results:
+                ip = result.get("ip")
+                mac = result.get("mac")
 
-            if result.returncode != 0:
-                print(f"ARP command failed: {result.stderr}")
-                # Return cached data if available
-                return self.cached_devices if self.cached_devices else []
+                # Skip if already seen or invalid
+                if not ip or not mac:
+                    continue
+                if mac in seen_macs or mac == "00:00:00:00:00:00":
+                    continue
 
-            lines = result.stdout.split("\n")
-            print(f"📋 Found {len(lines)} ARP entries")
+                seen_macs.add(mac)
+                current_macs.add(mac)
 
-            for line in lines:
-                # Match IP address: (192.168.1.x)
-                ip_match = re.search(r"\((\d+\.\d+\.\d+\.\d+)\)", line)
-                # Match MAC address
-                mac_match = re.search(
-                    r"([0-9a-f]{1,2}[:-]){5}[0-9a-f]{1,2}", line, re.IGNORECASE
+                # Get hostname from result or None
+                hostname = result.get("hostname")
+
+                # Get vendor - try arp-scan vendor first, then our database
+                arp_scan_vendor = result.get("vendor")
+                our_vendor_info = self.get_mac_vendor(mac)
+
+                # Vendor fallback chain
+                if arp_scan_vendor and arp_scan_vendor != "Unknown":
+                    vendor_name = arp_scan_vendor
+                    # Try to match type from our database
+                    device_type = (
+                        our_vendor_info.get("type", "default")
+                        if our_vendor_info
+                        else "default"
+                    )
+                elif our_vendor_info:
+                    vendor_name = our_vendor_info.get("vendor")
+                    device_type = our_vendor_info.get("type", "default")
+                else:
+                    vendor_name = None
+                    device_type = "default"
+
+                # Generate device name
+                vendor_info_for_name = (
+                    {"vendor": vendor_name, "type": device_type}
+                    if vendor_name
+                    else None
                 )
 
-                if ip_match and mac_match:
-                    ip = ip_match.group(1)
-                    mac = mac_match.group(0).lower()
+                device_name = self.generate_device_name(
+                    ip, mac, hostname, vendor_info_for_name
+                )
 
-                    # Skip if already seen or invalid
-                    if (
-                        mac in seen_macs
-                        or mac == "00:00:00:00:00:00"
-                        or "incomplete" in line.lower()
-                    ):
-                        continue
+                # Use arp-scan response time if available,
+                # otherwise no ping needed
+                latency = result.get("response_time")
+                packet_loss = 0.0
+                connection_quality = None
 
-                    seen_macs.add(mac)
-                    current_macs.add(mac)
-
-                    # Extract hostname if available
-                    hostname_match = re.match(r"^(\S+)\s+\(", line)
-                    hostname = hostname_match.group(1) if hostname_match else None
-
-                    # Get vendor info
-                    vendor_info = self.get_mac_vendor(mac)
-
-                    # Generate device name
-                    device_name = self.generate_device_name(
-                        ip, mac, hostname, vendor_info
+                if latency is not None:
+                    # Response time from arp-scan (convert to ms if needed)
+                    connection_quality = self.assess_connection_quality(
+                        latency, packet_loss
                     )
-                    device_type = (
-                        vendor_info.get("type", "default") if vendor_info else "default"
-                    )
-                    vendor_name = vendor_info.get("vendor") if vendor_info else None
-
-                    # Measure connection quality (ping only some devices)
-                    latency = None
-                    packet_loss = 0.0
-                    connection_quality = None
-
-                    # Ping every 5th device to avoid network congestion
-                    # (or devices not in cache for first-time measurement)
-                    if mac not in self.known_devices or len(devices) % 5 == 0:
+                else:
+                    # Fallback: ping only if arp-scan didn't provide time
+                    if mac not in self.known_devices:
                         latency, packet_loss = self.ping_device(ip)
                         connection_quality = self.assess_connection_quality(
                             latency, packet_loss
