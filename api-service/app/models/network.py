@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional, Literal
+from enum import Enum
 
 
 class NetworkDevice(BaseModel):
@@ -126,3 +127,82 @@ class NetworkStatusResponse(BaseModel):
                 "chart_data": [{"time": "Now", "download": 50.5, "upload": 10.2}],
             }
         }
+
+
+class AlertType(str, Enum):
+    """Alert type enumeration"""
+
+    NEW_DEVICE = "new_device"
+    DEVICE_OFFLINE = "device_offline"
+    POOR_CONNECTION = "poor_connection"
+    DUPLICATE_IP = "duplicate_ip"
+    HIGH_LATENCY = "high_latency"
+    PACKET_LOSS = "packet_loss"
+
+
+class AlertSeverity(str, Enum):
+    """Alert severity levels"""
+
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error"
+    CRITICAL = "critical"
+
+
+class Alert(BaseModel):
+    """Network alert model"""
+
+    id: str
+    type: AlertType
+    severity: AlertSeverity
+    title: str
+    message: str
+    device_id: Optional[str] = None
+    device_name: Optional[str] = None
+    timestamp: datetime
+    acknowledged: bool = False
+    acknowledged_at: Optional[datetime] = None
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "id": "alert-1",
+                "type": "poor_connection",
+                "severity": "warning",
+                "title": "Poor Connection Quality",
+                "message": "Device iPhone 13 has high latency (250ms)",
+                "device_id": "aabbccddeeff",
+                "device_name": "iPhone 13",
+                "timestamp": "2025-11-06T18:30:00",
+                "acknowledged": False,
+            }
+        }
+
+
+class AlertRule(BaseModel):
+    """Alert rule configuration"""
+
+    id: str
+    type: AlertType
+    enabled: bool = True
+    # Thresholds
+    latency_threshold: Optional[float] = 200.0  # ms
+    packet_loss_threshold: Optional[float] = 10.0  # percentage
+    offline_threshold: Optional[int] = 300  # seconds
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "id": "rule-1",
+                "type": "high_latency",
+                "enabled": True,
+                "latency_threshold": 200.0,
+            }
+        }
+
+
+class AlertsResponse(BaseModel):
+    """Alerts API response"""
+
+    alerts: list[Alert]
+    unacknowledged_count: int

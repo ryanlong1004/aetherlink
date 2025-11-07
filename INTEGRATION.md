@@ -90,6 +90,27 @@ Quality badge colors:
 - IP address changes
 - Real-time event updates
 
+### Alert System (NEW!)
+
+- **Alert Badge**: Fixed position badge showing unacknowledged alert count
+  - Color-coded by highest severity (red for critical/error, yellow for warning, cyan for info)
+  - Pulse animation when alerts are active
+  - Click to toggle alert panel
+- **Alert Panel**: Expandable panel with two tabs
+  - **Active**: Unacknowledged alerts with severity icons
+  - **History**: Past 20 alerts (acknowledged)
+  - Each alert shows: title, message, device, timestamp, and severity
+  - One-click acknowledge button
+
+Alert Types:
+
+- 🆕 **New Device**: Info - When unknown device joins network
+- ⏸️ **Device Offline**: Warning - When known device disconnects (>5min)
+- 📶 **Poor Connection**: Warning - Latency >200ms
+- 🚫 **Duplicate IP**: Critical - Multiple devices with same IP
+- ⏱️ **High Latency**: Warning - Ping latency exceeds threshold
+- 📉 **Packet Loss**: Error - Packet loss >10%
+
 ## API Endpoints Used
 
 The dashboard calls these API endpoints:
@@ -106,6 +127,16 @@ Returns complete network status:
 - All connected devices with full metrics
 - Recent activities
 - Chart data for visualization
+
+### Alert Endpoints
+
+```
+GET  /api/alerts                    # Get active alerts
+GET  /api/alerts/history?limit=20   # Get alert history
+PATCH /api/alerts/{id}/acknowledge  # Acknowledge alert
+GET  /api/alerts/rules              # Get alert rules
+PUT  /api/alerts/rules/{id}         # Update rule config
+```
 
 ### Response Example
 
@@ -135,7 +166,21 @@ Returns complete network status:
     }
   ],
   "activities": [...],
-  "chart_data": [...]
+  "chart_data": [...],
+  "alerts": [
+    {
+      "id": "alert-1234567890",
+      "type": "NEW_DEVICE",
+      "severity": "info",
+      "title": "New Device Connected",
+      "message": "Device 11 has joined the network",
+      "device_name": "Device 11",
+      "device_mac": "54:af:97:84:60:a0",
+      "timestamp": "2025-11-06T19:47:19.980100",
+      "acknowledged_at": null
+    }
+  ],
+  "unacknowledged_alerts": 1
 }
 ```
 
