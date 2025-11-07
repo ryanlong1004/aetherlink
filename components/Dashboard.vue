@@ -78,6 +78,12 @@ interface Device {
   status: 'online' | 'offline'
   type: string
   vendor?: string
+  latency?: number
+  packet_loss?: number
+  connection_quality?: 'excellent' | 'good' | 'fair' | 'poor'
+  first_seen?: string
+  last_seen?: string
+  total_connections?: number
 }
 
 interface Activity {

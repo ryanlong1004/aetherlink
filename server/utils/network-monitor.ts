@@ -766,30 +766,6 @@ function guessDeviceType(mac: string): string {
 }
 
 /**
- * Get MAC vendor from OUI (simplified - in production use an API)
- */
-async function getMacVendor(mac: string): Promise<string | undefined> {
-  const oui = mac.substring(0, 8).toLowerCase();
-
-  // Common vendors (partial list - in production, use IEEE OUI database or API)
-  const vendors: Record<string, string> = {
-    "00:03:93": "Apple",
-    "00:0a:95": "Apple",
-    "00:1b:63": "Apple",
-    "ac:de:48": "Apple",
-    "f0:18:98": "Apple",
-    "00:12:fb": "Samsung",
-    "00:1d:25": "Samsung",
-    "54:60:09": "Google",
-    "6c:ad:f8": "Google",
-    "b8:27:eb": "Raspberry Pi Foundation",
-    "dc:a6:32": "Raspberry Pi Trading",
-  };
-
-  return vendors[oui];
-}
-
-/**
  * Calculate network speed based on interface stats
  */
 export async function calculateNetworkSpeed(): Promise<number> {
