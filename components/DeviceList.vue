@@ -4,10 +4,11 @@
       Connected Devices
     </h3>
     <div class="space-y-3 max-h-96 overflow-y-auto custom-scrollbar">
-      <div
+      <NuxtLink
         v-for="device in devices"
         :key="device.id"
-        class="p-3 glass-panel rounded-lg hover:border-aether-cyan/40 transition-all duration-300 border border-aether-cyan/10"
+        :to="`/devices/${device.id}`"
+        class="block p-3 glass-panel rounded-lg hover:border-aether-cyan/40 transition-all duration-300 border border-aether-cyan/10 cursor-pointer hover:scale-[1.02]"
       >
         <div class="flex items-center justify-between mb-2">
           <div class="flex items-center space-x-3 flex-1">
@@ -56,7 +57,7 @@
             <span>{{ device.total_connections }} connections</span>
           </span>
         </div>
-      </div>
+      </NuxtLink>
     </div>
   </div>
 </template>

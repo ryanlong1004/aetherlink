@@ -476,6 +476,20 @@ class NetworkMonitorService:
                     )
                     devices.append(device)
 
+                    # Track device history for trend analysis (keep last 100 snapshots)
+                    if mac not in self.device_history:
+                        self.device_history[mac] = deque(maxlen=100)
+
+                    history_snapshot = {
+                        "timestamp": datetime.now(),
+                        "status": "online",
+                        "latency": latency,
+                        "packet_loss": packet_loss,
+                        "connection_quality": connection_quality,
+                        "ip": ip,
+                    }
+                    self.device_history[mac].append(history_snapshot)
+
                     # Evaluate device for alerts
                     alerts = self.alert_manager.evaluate_device(device)
                     for alert in alerts:
@@ -496,7 +510,9 @@ class NetworkMonitorService:
                         import asyncio
 
                         asyncio.create_task(
-                            websocket_manager.broadcast_alert(alert.dict())
+                            websocket_manager.broadcast_alert(
+                                alert.model_dump(mode="json")
+                            )
                         )
 
                     # Track device info
@@ -565,7 +581,7 @@ class NetworkMonitorService:
                 {
                     "timestamp": datetime.now(),
                     "device_count": len(devices),
-                    "devices": [d.dict() for d in devices],
+                    "devices": [d.model_dump(mode="json") for d in devices],
                 }
             )
 
@@ -635,7 +651,7 @@ class NetworkMonitorService:
             self.stats_history.append(
                 {
                     "timestamp": datetime.now(),
-                    "stats": stats.dict(),
+                    "stats": stats.model_dump(mode="json"),
                 }
             )
 
@@ -683,6 +699,47 @@ class NetworkMonitorService:
                 )
 
         return data
+
+    def get_device_history(self, mac: str, limit: int = 100) -> List[Dict[str, Any]]:
+        """
+        Get historical data for a specific device
+        Returns list of snapshots with timestamp, status, latency, packet_loss, etc.
+        """
+        if mac not in self.device_history:
+            return []
+
+        # Convert deque to list and limit results
+        history = list(self.device_history[mac])
+        if limit:
+            history = history[-limit:]
+
+        # Convert to serializable format
+        return [
+            {
+                "timestamp": snapshot["timestamp"].isoformat(),
+                "status": snapshot["status"],
+                "latency": snapshot.get("latency"),
+                "packet_loss": snapshot.get("packet_loss"),
+                "connection_quality": snapshot.get("connection_quality"),
+                "ip": snapshot.get("ip"),
+            }
+            for snapshot in history
+        ]
+
+    def get_device_activities(
+        self, device_name: str, limit: int = 50
+    ) -> List[NetworkActivity]:
+        """
+        Get activity log entries for a specific device
+        """
+        device_activities = [
+            activity for activity in self.activity_log if activity.device == device_name
+        ]
+
+        if limit:
+            device_activities = device_activities[:limit]
+
+        return device_activities
 
     def get_diagnostics(self) -> Dict[str, Any]:
         """
