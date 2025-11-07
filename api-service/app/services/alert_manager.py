@@ -108,8 +108,7 @@ class AlertManager:
             if (
                 device.latency
                 and self.rules["high_latency"].enabled
-                and device.latency
-                > self.rules["high_latency"].latency_threshold
+                and device.latency > self.rules["high_latency"].latency_threshold
             ):
                 alert_id = f"latency-{device_id}"
                 if alert_id not in self.active_alerts:
@@ -129,8 +128,7 @@ class AlertManager:
             if (
                 device.packet_loss
                 and self.rules["packet_loss"].enabled
-                and device.packet_loss
-                > self.rules["packet_loss"].packet_loss_threshold
+                and device.packet_loss > self.rules["packet_loss"].packet_loss_threshold
             ):
                 alert_id = f"packetloss-{device_id}"
                 if alert_id not in self.active_alerts:
@@ -148,9 +146,7 @@ class AlertManager:
 
         return alerts
 
-    def create_duplicate_ip_alert(
-        self, ip: str, mac_addresses: List[str]
-    ) -> Alert:
+    def create_duplicate_ip_alert(self, ip: str, mac_addresses: List[str]) -> Alert:
         """Create alert for duplicate IP detection."""
         alert = self._create_alert(
             alert_type=AlertType.DUPLICATE_IP,
