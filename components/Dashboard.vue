@@ -2,23 +2,15 @@
   <div class="container mx-auto px-4 py-8">
     <!-- Connection Status Indicator -->
     <ConnectionStatus :status="connectionStatus" />
-    
+
     <!-- Alert Badge -->
-    <AlertBadge 
-      :unacknowledged-count="unacknowledgedAlerts"
-      :highest-severity="highestAlertSeverity"
-      @toggle="toggleAlertPanel"
-    />
-    
+    <AlertBadge :unacknowledged-count="unacknowledgedAlerts" :highest-severity="highestAlertSeverity"
+      @toggle="toggleAlertPanel" />
+
     <!-- Alert Panel -->
-    <AlertPanel
-      :is-open="showAlertPanel"
-      :alerts="activeAlerts"
-      :alert-history="alertHistory"
-      @close="showAlertPanel = false"
-      @acknowledge="acknowledgeAlert"
-    />
-    
+    <AlertPanel :is-open="showAlertPanel" :alerts="activeAlerts" :alert-history="alertHistory"
+      @close="showAlertPanel = false" @acknowledge="acknowledgeAlert" />
+
     <!-- Hero Header with Logo -->
     <header class="mb-12 text-center">
       <div class="flex items-center justify-center mb-4">
@@ -37,30 +29,10 @@
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      <StatsCard
-        title="Connected Devices"
-        :value="stats.connectedDevices"
-        icon="🔗"
-        color="cyan"
-      />
-      <StatsCard
-        title="Network Speed"
-        :value="`${stats.networkSpeed} Mbps`"
-        icon="⚡"
-        color="cyan"
-      />
-      <StatsCard
-        title="Data Usage"
-        :value="`${stats.dataUsage} GB`"
-        icon="📊"
-        color="bronze"
-      />
-      <StatsCard
-        title="Uptime"
-        :value="stats.uptime"
-        icon="⏱️"
-        color="bronze"
-      />
+      <StatsCard title="Connected Devices" :value="stats.connectedDevices" icon="🔗" color="cyan" />
+      <StatsCard title="Network Speed" :value="`${stats.networkSpeed} Mbps`" icon="⚡" color="cyan" />
+      <StatsCard title="Data Usage" :value="`${stats.dataUsage} GB`" icon="📊" color="bronze" />
+      <StatsCard title="Uptime" :value="stats.uptime" icon="⏱️" color="bronze" />
     </div>
 
     <!-- Main Content Grid -->
@@ -116,6 +88,8 @@ const config = useRuntimeConfig()
 const apiBase = config.public.apiBase || 'http://localhost:8000'
 const wsBase = apiBase.replace('http://', 'ws://').replace('https://', 'wss://')
 
+console.log('🔧 Dashboard Config:', { apiBase, wsBase, config: config.public })
+
 const stats = ref({
   connectedDevices: 0,
   networkSpeed: 0,
@@ -148,16 +122,16 @@ const updateNetworkData = (data: any) => {
     dataUsage: data.stats.data_usage,
     uptime: data.stats.uptime
   }
-  
+
   devices.value = data.devices
   activities.value = data.activities
   networkData.value = data.chart_data
-  
+
   // Update alerts if present
   if (data.alerts) {
     activeAlerts.value = data.alerts
     unacknowledgedAlerts.value = data.unacknowledged_alerts || 0
-    
+
     // Calculate highest severity
     if (data.alerts.length > 0) {
       const severities = ['critical', 'error', 'warning', 'info']
@@ -183,7 +157,7 @@ const acknowledgeAlert = async (alertId: string) => {
     // Remove from active alerts
     activeAlerts.value = activeAlerts.value.filter((a: any) => a.id !== alertId)
     unacknowledgedAlerts.value = Math.max(0, unacknowledgedAlerts.value - 1)
-    
+
     // Fetch updated alert history
     fetchAlertHistory()
   } catch (error) {
@@ -202,13 +176,17 @@ const fetchAlertHistory = async () => {
 
 const connectWebSocket = () => {
   if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+    console.log('WebSocket already connected or connecting')
     return
   }
 
   connectionStatus.value = reconnectAttempts > 0 ? 'reconnecting' : 'connecting'
-  
+
+  const wsUrl = `${wsBase}/api/ws/network`
+  console.log(`🔌 Attempting WebSocket connection to: ${wsUrl}`)
+
   try {
-    ws = new WebSocket(`${wsBase}/api/ws/network`)
+    ws = new WebSocket(wsUrl)
 
     ws.onopen = () => {
       console.log('✓ WebSocket connected')
@@ -219,7 +197,7 @@ const connectWebSocket = () => {
     ws.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data)
-        
+
         if (message.type === 'network_update') {
           updateNetworkData(message.data)
         } else if (message.type === 'device_event') {
@@ -230,7 +208,7 @@ const connectWebSocket = () => {
           console.log('New alert:', message.alert)
           activeAlerts.value.push(message.alert)
           unacknowledgedAlerts.value++
-          
+
           // Update highest severity if needed
           const severities = ['critical', 'error', 'warning', 'info']
           const newSeverityIndex = severities.indexOf(message.alert.severity)
@@ -255,11 +233,11 @@ const connectWebSocket = () => {
       console.log('✗ WebSocket disconnected')
       connectionStatus.value = 'disconnected'
       ws = null
-      
+
       // Attempt to reconnect with exponential backoff
       const delay = Math.min(baseReconnectDelay * Math.pow(2, reconnectAttempts), maxReconnectDelay)
       console.log(`Reconnecting in ${delay}ms (attempt ${reconnectAttempts + 1})`)
-      
+
       reconnectTimeout = setTimeout(() => {
         reconnectAttempts++
         connectWebSocket()
@@ -277,7 +255,7 @@ const disconnectWebSocket = () => {
     clearTimeout(reconnectTimeout)
     reconnectTimeout = null
   }
-  
+
   if (ws) {
     ws.close()
     ws = null
