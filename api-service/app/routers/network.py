@@ -85,11 +85,7 @@ async def get_device_history(device_id: str, limit: int = 100):
         mac = ":".join([device_id[i : i + 2] for i in range(0, len(device_id), 2)])
         history = network_monitor.get_device_history(mac, limit)
 
-        if not history:
-            raise HTTPException(
-                status_code=404, detail=f"No history found for device {device_id}"
-            )
-
+        # Return empty history if none exists yet (device might be new)
         return {"device_id": device_id, "history": history}
     except HTTPException:
         raise
