@@ -496,7 +496,9 @@ class NetworkMonitorService:
                         import asyncio
 
                         asyncio.create_task(
-                            websocket_manager.broadcast_alert(alert.dict())
+                            websocket_manager.broadcast_alert(
+                                alert.model_dump(mode="json")
+                            )
                         )
 
                     # Track device info
