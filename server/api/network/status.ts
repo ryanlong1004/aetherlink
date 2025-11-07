@@ -41,7 +41,9 @@ export default defineEventHandler(async () => {
     const timeout = new Promise<ReturnType<typeof getMockNetworkData>>(
       (resolve) => {
         setTimeout(() => {
-          console.log("⏱️ Network scan timeout (10s) - falling back to mock data");
+          console.log(
+            "⏱️ Network scan timeout (10s) - falling back to mock data"
+          );
           resolve(getMockNetworkData());
         }, 10000); // 10 second timeout
       }
