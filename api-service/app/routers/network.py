@@ -73,6 +73,64 @@ async def get_device(device_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/devices/{device_id}/history")
+async def get_device_history(device_id: str, limit: int = 100):
+    """
+    Get historical data for a specific device
+
+    Returns latency, packet loss, and connection quality over time
+    """
+    try:
+        # Convert device_id back to MAC address format (add colons)
+        mac = ":".join([device_id[i : i + 2] for i in range(0, len(device_id), 2)])
+        history = network_monitor.get_device_history(mac, limit)
+
+        if not history:
+            raise HTTPException(
+                status_code=404, detail=f"No history found for device {device_id}"
+            )
+
+        return {"device_id": device_id, "history": history}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/devices/{device_id}/activities", response_model=List[NetworkActivity])
+async def get_device_activities(device_id: str, limit: int = 50):
+    """
+    Get activity log for a specific device
+
+    Returns recent connection/disconnection events and alerts
+    """
+    try:
+        # Find device name from current devices or known devices
+        devices = await network_monitor.scan_network()
+        device_name = None
+
+        for device in devices:
+            if device.id == device_id:
+                device_name = device.name
+                break
+
+        if not device_name:
+            # Try to find from known devices
+            mac = ":".join([device_id[i : i + 2] for i in range(0, len(device_id), 2)])
+            if mac in network_monitor.known_devices:
+                device_name = network_monitor.known_devices[mac].get("name")
+
+        if not device_name:
+            raise HTTPException(status_code=404, detail=f"Device {device_id} not found")
+
+        activities = network_monitor.get_device_activities(device_name, limit)
+        return activities
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/stats", response_model=NetworkStats)
 async def get_stats():
     """
