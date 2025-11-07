@@ -150,7 +150,9 @@ async def websocket_endpoint(websocket: WebSocket):
                     },
                     "devices": [device.model_dump(mode="json") for device in devices],
                     "activities": [act.model_dump(mode="json") for act in activities],
-                    "chart_data": chart_data,
+                    "chart_data": [
+                        point.model_dump(mode="json") for point in chart_data
+                    ],
                 }
 
                 # Check for device changes
